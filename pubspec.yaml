@@ -1,7 +1,7 @@
 name: pure_eq
 description: "PureEQ — a minimal, dark-mode system equalizer with a real-time spectrum visualizer."
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   # Dart 3.6 ships with Flutter 3.27, the first release with Color.withValues().
