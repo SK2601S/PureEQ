@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/eq_band.dart';
 import '../../providers/eq_provider.dart';
+import '../../providers/media_provider.dart';
 import '../../providers/volume_provider.dart';
 import '../../providers/window_provider.dart';
 import '../../theme/app_theme.dart';
@@ -78,6 +79,18 @@ class _SpectrumVisualizerState extends ConsumerState<SpectrumVisualizer> {
   static const _liveChannel = EventChannel('skeq/spectrum');
   StreamSubscription<dynamic>? _liveSub;
 
+  /// "Playing" (for the play/pause button) as soon as there is sound;
+  /// "stopped" only after ~1 s of silence, so quiet gaps don't flicker it.
+  DateTime _lastSound = DateTime.fromMillisecondsSinceEpoch(0);
+
+  void _updatePlaying(bool hasSound) {
+    final now = DateTime.now();
+    if (hasSound) _lastSound = now;
+    final playing = now.difference(_lastSound) < const Duration(milliseconds: 1000);
+    final notifier = ref.read(audioPlayingProvider.notifier);
+    if (notifier.state != playing) notifier.state = playing;
+  }
+
   void _syncLiveInput() {
     if (!Platform.isWindows) return;
     if (_paused) {
@@ -89,6 +102,7 @@ class _SpectrumVisualizerState extends ConsumerState<SpectrumVisualizer> {
         (frame) {
           if (frame is Float32List) {
             _sim.pushLive(frame);
+            _updatePlaying(_sim.liveHasSignal);
             // Sound after silence: wake the pacer right away.
             if (_timer != null && _sim.isQuiet && _sim.liveHasSignal) {
               _timer!.cancel();

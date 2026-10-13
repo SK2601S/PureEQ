@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/eq_provider.dart';
 import '../../providers/volume_provider.dart';
+import '../../services/media_service.dart';
 import '../../theme/app_theme.dart';
+import 'media_controls.dart';
 import 'save_preset_dialog.dart';
 
-/// Bottom bar: master volume + mute on the left; A/B compare, Reset and
+/// Bottom bar: media buttons, master volume + mute on the left; A/B compare, Reset and
 /// Save Preset on the right.
 class BottomControls extends ConsumerWidget {
   const BottomControls({super.key});
@@ -21,6 +23,10 @@ class BottomControls extends ConsumerWidget {
       ),
       child: Row(
         children: [
+          if (MediaService.isSupported) ...[
+            const MediaControls(),
+            const SizedBox(width: 20),
+          ],
           const Expanded(child: _MasterVolume()),
           const SizedBox(width: 24),
           const AbCompareButton(),
@@ -60,7 +66,10 @@ class AbCompareButton extends ConsumerWidget {
             color: active ? color : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
             boxShadow: active
-                ? [BoxShadow(color: color.withValues(alpha: 0.45), blurRadius: 12)]
+                ? [
+                    BoxShadow(
+                        color: color.withValues(alpha: 0.45), blurRadius: 12)
+                  ]
                 : const [],
           ),
           child: Text(
@@ -92,7 +101,9 @@ class AbCompareButton extends ConsumerWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: bypassed ? AppColors.bypass.withValues(alpha: 0.5) : AppColors.border,
+                  color: bypassed
+                      ? AppColors.bypass.withValues(alpha: 0.5)
+                      : AppColors.border,
                 ),
               ),
               child: Row(
@@ -100,7 +111,8 @@ class AbCompareButton extends ConsumerWidget {
                 children: [
                   const Icon(Icons.compare_arrows_rounded, size: 18),
                   const SizedBox(width: 8),
-                  const Text('Compare', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const Text('Compare',
+                      style: TextStyle(fontWeight: FontWeight.w500)),
                   const SizedBox(width: 10),
                   segment('A', enabled && !bypassed, AppColors.accent),
                   const SizedBox(width: 2),
@@ -133,7 +145,11 @@ class _SavePresetButton extends ConsumerWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           boxShadow: dirty
-              ? [BoxShadow(color: AppColors.accent.withValues(alpha: 0.4), blurRadius: 18)]
+              ? [
+                  BoxShadow(
+                      color: AppColors.accent.withValues(alpha: 0.4),
+                      blurRadius: 18)
+                ]
               : const [],
         ),
         child: FilledButton.icon(
@@ -143,7 +159,11 @@ class _SavePresetButton extends ConsumerWidget {
             foregroundColor: dirty ? Colors.black : AppColors.textSecondary,
             side: dirty ? null : const BorderSide(color: AppColors.border),
           ),
-          icon: Icon(dirty ? Icons.bookmark_add_rounded : Icons.bookmark_border_rounded, size: 18),
+          icon: Icon(
+              dirty
+                  ? Icons.bookmark_add_rounded
+                  : Icons.bookmark_border_rounded,
+              size: 18),
           label: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -187,66 +207,76 @@ class _MasterVolume extends ConsumerWidget {
       icon = Icons.volume_up_rounded;
     }
 
-    return Row(
-      children: [
-        Tooltip(
-          message: vol.muted ? 'Unmute' : 'Mute',
-          child: IconButton(
-            onPressed: notifier.toggleMute,
-            style: IconButton.styleFrom(
-              backgroundColor:
-                  vol.muted ? AppColors.danger.withValues(alpha: 0.15) : AppColors.surfaceHigh,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              fixedSize: const Size(44, 44),
-            ),
-            icon: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 150),
-              child: Icon(
-                icon,
-                key: ValueKey(icon),
-                color: vol.muted ? AppColors.danger : AppColors.textPrimary,
+    // Narrow windows (media buttons take room): drop the label, keep the slider.
+    return LayoutBuilder(builder: (context, constraints) {
+      final showLabel = constraints.maxWidth > 330;
+      return Row(
+        children: [
+          Tooltip(
+            message: vol.muted ? 'Unmute' : 'Mute',
+            child: IconButton(
+              onPressed: notifier.toggleMute,
+              style: IconButton.styleFrom(
+                backgroundColor: vol.muted
+                    ? AppColors.danger.withValues(alpha: 0.15)
+                    : AppColors.surfaceHigh,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                fixedSize: const Size(44, 44),
+              ),
+              icon: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 150),
+                child: Icon(
+                  icon,
+                  key: ValueKey(icon),
+                  color: vol.muted ? AppColors.danger : AppColors.textPrimary,
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(width: 14),
-        Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Master Volume',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-            Text(
-              vol.available ? 'System output' : 'System volume unavailable',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+          const SizedBox(width: 14),
+          if (showLabel) ...[
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Master Volume',
+                    style:
+                        TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                Text(
+                  vol.available ? 'System output' : 'System volume unavailable',
+                  style:
+                      const TextStyle(color: AppColors.textMuted, fontSize: 11),
+                ),
+              ],
             ),
+            const SizedBox(width: 8),
           ],
-        ),
-        const SizedBox(width: 8),
-        Flexible(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 320),
-            child: AnimatedOpacity(
-              duration: const Duration(milliseconds: 200),
-              opacity: vol.muted ? 0.45 : 1,
-              child: Slider(value: vol.volume, onChanged: notifier.setVolume),
+          Flexible(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 320),
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: vol.muted ? 0.45 : 1,
+                child: Slider(value: vol.volume, onChanged: notifier.setVolume),
+              ),
             ),
           ),
-        ),
-        SizedBox(
-          width: 46,
-          child: Text(
-            vol.muted ? 'Muted' : '${(vol.volume * 100).round()}%',
-            textAlign: TextAlign.right,
-            style: TextStyle(
-              color: vol.muted ? AppColors.danger : AppColors.textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              fontFeatures: const [FontFeature.tabularFigures()],
+          SizedBox(
+            width: 46,
+            child: Text(
+              vol.muted ? 'Muted' : '${(vol.volume * 100).round()}%',
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: vol.muted ? AppColors.danger : AppColors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
             ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
+    });
   }
 }

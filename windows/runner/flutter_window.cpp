@@ -4,6 +4,7 @@
 #include <flutter/standard_method_codec.h>
 
 #include <optional>
+#include <string>
 
 #include "flutter/generated_plugin_registrant.h"
 
@@ -34,6 +35,7 @@ bool FlutterWindow::OnCreate() {
   }
   RegisterPlugins(flutter_controller_->engine());
   SetUpSpectrumChannel();
+  SetUpMediaChannel();
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
@@ -67,6 +69,34 @@ void FlutterWindow::SetUpSpectrumChannel() {
         return nullptr;
       });
   spectrum_channel_->SetStreamHandler(std::move(handler));
+}
+
+void FlutterWindow::SetUpMediaChannel() {
+  media_channel_ = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+      flutter_controller_->engine()->messenger(), "skeq/media",
+      &flutter::StandardMethodCodec::GetInstance());
+  media_channel_->SetMethodCallHandler(
+      [](const flutter::MethodCall<flutter::EncodableValue>& call,
+         std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+        WORD key = 0;
+        const std::string& name = call.method_name();
+        if (name == "playPause") key = VK_MEDIA_PLAY_PAUSE;
+        else if (name == "next") key = VK_MEDIA_NEXT_TRACK;
+        else if (name == "previous") key = VK_MEDIA_PREV_TRACK;
+        else if (name == "stop") key = VK_MEDIA_STOP;
+        if (key == 0) {
+          result->NotImplemented();
+          return;
+        }
+        // Press and release the media key, exactly like a keyboard would.
+        INPUT inputs[2] = {};
+        inputs[0].type = INPUT_KEYBOARD;
+        inputs[0].ki.wVk = key;
+        inputs[1] = inputs[0];
+        inputs[1].ki.dwFlags = KEYEVENTF_KEYUP;
+        const UINT sent = ::SendInput(2, inputs, sizeof(INPUT));
+        result->Success(flutter::EncodableValue(sent == 2));
+      });
 }
 
 void FlutterWindow::OnDestroy() {

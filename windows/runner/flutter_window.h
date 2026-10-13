@@ -5,6 +5,7 @@
 #include <flutter/encodable_value.h>
 #include <flutter/event_channel.h>
 #include <flutter/flutter_view_controller.h>
+#include <flutter/method_channel.h>
 
 #include <memory>
 
@@ -38,6 +39,11 @@ class FlutterWindow : public Win32Window {
   AudioCapture audio_capture_;
   std::unique_ptr<flutter::EventChannel<flutter::EncodableValue>> spectrum_channel_;
   std::unique_ptr<flutter::EventSink<flutter::EncodableValue>> spectrum_sink_;
+
+  // Media buttons ("skeq/media"): sends the keyboard media keys, so they
+  // control whichever app is playing (Spotify, browser, VLC, …).
+  void SetUpMediaChannel();
+  std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> media_channel_;
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_
