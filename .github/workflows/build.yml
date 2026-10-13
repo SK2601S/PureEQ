@@ -1,0 +1,106 @@
+# Builds the Windows installer (.exe) and macOS disk image (.dmg).
+#
+# - Run it by hand: GitHub → Actions → "Build installers" → Run workflow.
+#   The files appear as downloadable artifacts on the run page.
+# - Release: bump `version:` in pubspec.yaml, commit, then push an annotated
+#   tag whose message is the release notes:
+#     git tag -a v1.1.0 -m "What's new in 1.1.0 ..." && git push origin v1.1.0
+#   The installers and latest.json are attached to a GitHub Release, and
+#   installed copies of PureEQ offer the update automatically.
+name: Build installers
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_VERSION: '3.47.7'
+  # Baked into the apps so they check this repository's releases for updates.
+  PUREEQ_UPDATE_URL: https://github.com/${{ github.repository }}/releases/latest/download/latest.json
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+      - name: Test
+        run: flutter test
+      - name: Build installer
+        shell: pwsh
+        run: ./scripts/build_windows_installer.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PureEQ-Windows
+          path: dist/*.exe
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Build DMG
+        run: |
+          chmod +x scripts/build_macos_dmg.sh
+          ./scripts/build_macos_dmg.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PureEQ-macOS
+          path: dist/*.dmg
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the annotated tag's message becomes the release notes
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      # latest.json is what installed apps read to find updates; it is served
+      # at https://github.com/<repo>/releases/latest/download/latest.json
+      - name: Write update manifest
+        env:
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          VERSION="${TAG#v}"
+          PUB=$(sed -nE 's/^version:[[:space:]]*([^+[:space:]]+).*/\1/p' pubspec.yaml)
+          if [ "$PUB" != "$VERSION" ]; then
+            echo "::error::pubspec.yaml version ($PUB) does not match tag $TAG"; exit 1
+          fi
+          git tag -l --format='%(contents)' "$TAG" > notes.md
+          BASE="https://github.com/$REPO/releases/download/$TAG"
+          EXE="PureEQ-Setup-$VERSION.exe"
+          DMG="PureEQ-$VERSION.dmg"
+          jq -n \
+            --arg version "$VERSION" \
+            --rawfile notes notes.md \
+            --arg notesUrl "https://github.com/$REPO/releases/tag/$TAG" \
+            --arg exe "$BASE/$EXE" --arg exeSha "$(sha256sum "dist/$EXE" | cut -d' ' -f1)" \
+            --arg dmg "$BASE/$DMG" --arg dmgSha "$(sha256sum "dist/$DMG" | cut -d' ' -f1)" \
+            '{version: $version, notes: $notes, notesUrl: $notesUrl,
+              windows: {url: $exe, sha256: $exeSha},
+              macos: {url: $dmg, sha256: $dmgSha}}' > dist/latest.json
+          cat dist/latest.json
+      - uses: softprops/action-gh-release@v2
+        with:
+          body_path: notes.md
+          files: dist/*
