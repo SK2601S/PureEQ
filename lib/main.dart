@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:screen_retriever/screen_retriever.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
@@ -20,7 +22,7 @@ Future<void> main() async {
   await windowManager.ensureInitialized();
   final (size, minimumSize) = await _windowSizes();
   final windowOptions = WindowOptions(
-    title: 'PureEQ',
+    title: 'SK EQ',
     size: size,
     minimumSize: minimumSize,
     center: true,
@@ -34,14 +36,36 @@ Future<void> main() async {
 
   // --- Persistence --------------------------------------------------------
   // Loaded once up front so providers can read it synchronously.
+  await _migrateSettingsFromPureEq();
   final prefs = await SharedPreferences.getInstance();
 
   runApp(
     ProviderScope(
       overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-      child: const PureEqApp(),
+      child: const SkEqApp(),
     ),
   );
+}
+
+/// SK EQ used to be called PureEQ. On Windows, settings live in a folder named
+/// after the app (`%APPDATA%\<company>\<product>`), so the rename would start
+/// with no presets. On first launch, copy the old settings file across.
+/// (macOS keys settings by bundle id, which did not change.)
+Future<void> _migrateSettingsFromPureEq() async {
+  if (!Platform.isWindows) return;
+  try {
+    final newDir = await getApplicationSupportDirectory(); // …\SK EQ\SK EQ
+    final appData = newDir.parent.parent.path;
+    final sep = Platform.pathSeparator;
+    final newFile = File('${newDir.path}${sep}shared_preferences.json');
+    final oldFile = File('$appData${sep}PureEQ${sep}PureEQ${sep}shared_preferences.json');
+    if (!await newFile.exists() && await oldFile.exists()) {
+      await newDir.create(recursive: true);
+      await oldFile.copy(newFile.path);
+    }
+  } catch (e) {
+    debugPrint('SK EQ: could not migrate PureEQ settings: $e');
+  }
 }
 
 /// Preferred and minimum window sizes, shrunk to fit the screen's work area

@@ -26,7 +26,7 @@ import 'widgets/update_banner.dart';
 ///   └ BottomControls ─ volume · mute ········ A/B · reset · save      ┘
 ///
 /// Also owns the tray icon. When it exists, closing the window hides
-/// PureEQ to the tray (it keeps running) and "Quit" lives in the tray menu.
+/// SK EQ to the tray (it keeps running) and "Quit" lives in the tray menu.
 ///
 /// Keyboard: B = A/B compare, E = EQ on/off, Ctrl/⌘+S = save preset.
 class HomePage extends ConsumerStatefulWidget {
@@ -58,7 +58,7 @@ class _HomePageState extends ConsumerState<HomePage> with WindowListener {
     if (trayReady) windowManager.setPreventClose(true);
 
     // Updates: quiet check shortly after startup and every few hours. The
-    // installer needs PureEQ closed, so give the updater a way to quit.
+    // installer needs SK EQ closed, so give the updater a way to quit.
     ref.read(updateProvider.notifier)
       ..quitForInstall = _quit
       ..startAutomaticChecks();

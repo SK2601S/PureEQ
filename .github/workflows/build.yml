@@ -6,7 +6,7 @@
 #   tag whose message is the release notes:
 #     git tag -a v1.1.0 -m "What's new in 1.1.0 ..." && git push origin v1.1.0
 #   The installers and latest.json are attached to a GitHub Release, and
-#   installed copies of PureEQ offer the update automatically.
+#   installed copies of SK EQ offer the update automatically.
 name: Build installers
 
 on:
@@ -41,7 +41,7 @@ jobs:
         run: ./scripts/build_windows_installer.ps1
       - uses: actions/upload-artifact@v4
         with:
-          name: PureEQ-Windows
+          name: SK-EQ-Windows
           path: dist/*.exe
 
   macos:
@@ -59,7 +59,7 @@ jobs:
           ./scripts/build_macos_dmg.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: PureEQ-macOS
+          name: SK-EQ-macOS
           path: dist/*.dmg
 
   release:
@@ -88,8 +88,8 @@ jobs:
           fi
           git tag -l --format='%(contents)' "$TAG" > notes.md
           BASE="https://github.com/$REPO/releases/download/$TAG"
-          EXE="PureEQ-Setup-$VERSION.exe"
-          DMG="PureEQ-$VERSION.dmg"
+          EXE="SK-EQ-Setup-$VERSION.exe"
+          DMG="SK-EQ-$VERSION.dmg"
           jq -n \
             --arg version "$VERSION" \
             --rawfile notes notes.md \

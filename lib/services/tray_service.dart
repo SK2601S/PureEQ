@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:tray_manager/tray_manager.dart' as tray;
 
 /// System tray (Windows) / menu bar (macOS) icon with a small menu:
-/// Show PureEQ · Equalizer on/off · Check for Updates · Quit.
+/// Show SK EQ · Equalizer on/off · Check for Updates · Quit.
 ///
 /// Uses tray_manager's native API. It is prefixed because its `Image`,
 /// `Menu` and `MenuItem` names clash with Flutter's.
@@ -37,16 +37,16 @@ class TrayService {
       } else {
         icon.icon = tray.ImageAsset.fromAsset('assets/tray/tray_icon.ico');
       }
-      icon.setTooltip('PureEQ');
+      icon.setTooltip('SK EQ');
 
-      final show = _item('Show PureEQ', tray.MenuItemType.normal, onShow);
+      final show = _item('Show SK EQ', tray.MenuItemType.normal, onShow);
       _eqItem = _item('Equalizer', tray.MenuItemType.checkbox, () {
         // A click does not toggle a native checkbox by itself.
         onEqChanged(_eqItem?.state != tray.MenuItemState.checked);
       });
       setEqEnabled(eqEnabled);
       final updates = _item('Check for Updates…', tray.MenuItemType.normal, onCheckUpdates);
-      final quit = _item('Quit PureEQ', tray.MenuItemType.normal, onQuit);
+      final quit = _item('Quit SK EQ', tray.MenuItemType.normal, onQuit);
 
       menu
         ..addItem(show)
@@ -73,7 +73,7 @@ class TrayService {
       _menu = menu;
       return true;
     } catch (e) {
-      debugPrint('PureEQ: tray icon unavailable: $e');
+      debugPrint('SK EQ: tray icon unavailable: $e');
       return false;
     }
   }

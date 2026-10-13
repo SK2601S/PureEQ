@@ -22,7 +22,7 @@ class PresetService {
       try {
         presets.add(Preset.fromJson(jsonDecode(entry) as Map<String, dynamic>));
       } catch (e) {
-        debugPrint('PureEQ: skipping unreadable preset: $e');
+        debugPrint('SK EQ: skipping unreadable preset: $e');
       }
     }
     return presets;

@@ -1,4 +1,4 @@
-# Builds PureEQ for Windows and packages it as dist\PureEQ-Setup-<version>.exe.
+# Builds SK EQ for Windows and packages it as dist\SK-EQ-Setup-<version>.exe.
 # Requires Flutter, Visual Studio Build Tools (C++ workload) and Inno Setup 6.
 #
 #   .\scripts\build_windows_installer.ps1            # build + package
@@ -29,4 +29,4 @@ if (-not $iscc) { throw 'Inno Setup not found. Install it with: winget install J
 
 & $iscc /Q "/DAppVersion=$version" installer\pureeq.iss
 if ($LASTEXITCODE -ne 0) { throw 'Inno Setup failed' }
-Write-Host "Created dist\PureEQ-Setup-$version.exe"
+Write-Host "Created dist\SK-EQ-Setup-$version.exe"

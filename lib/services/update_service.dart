@@ -49,8 +49,8 @@ class AppVersion implements Comparable<AppVersion> {
 ///   "version": "1.1.0",
 ///   "notes": "What's new…",
 ///   "notesUrl": "https://github.com/…/releases/tag/v1.1.0",
-///   "windows": { "url": "https://…/PureEQ-Setup-1.1.0.exe", "sha256": "…" },
-///   "macos":   { "url": "https://…/PureEQ-1.1.0.dmg",       "sha256": "…" }
+///   "windows": { "url": "https://…/SK-EQ-Setup-1.1.0.exe", "sha256": "…" },
+///   "macos":   { "url": "https://…/SK-EQ-1.1.0.dmg",       "sha256": "…" }
 /// }
 /// ```
 class UpdateInfo {
@@ -104,7 +104,7 @@ class UpdateCancelled implements Exception {
   const UpdateCancelled();
 }
 
-/// Checks for, downloads and launches PureEQ updates.
+/// Checks for, downloads and launches SK EQ updates.
 class UpdateService {
   UpdateService({required String manifestUrl, http.Client? client})
       : _manifestUrl = manifestUrl.isEmpty ? null : checkedUri(manifestUrl),
@@ -179,10 +179,10 @@ class UpdateService {
     void Function(double? progress)? onProgress,
     bool Function()? isCancelled,
   }) async {
-    final dir = Directory('${Directory.systemTemp.path}${Platform.pathSeparator}pureeq-update');
+    final dir = Directory('${Directory.systemTemp.path}${Platform.pathSeparator}sk-eq-update');
     await dir.create(recursive: true);
     final name = info.downloadUrl.pathSegments.isEmpty
-        ? 'PureEQ-update'
+        ? 'SK-EQ-update'
         : info.downloadUrl.pathSegments.last;
     final file = File('${dir.path}${Platform.pathSeparator}$name');
 
@@ -229,20 +229,20 @@ class UpdateService {
   /// Starts installing [file].
   ///
   /// * Windows: runs the Inno Setup installer silently. It shows a small
-  ///   progress window, replaces the app, and restarts PureEQ (see the
+  ///   progress window, replaces the app, and restarts SK EQ (see the
   ///   `/UPDATE=1` handling in installer/pureeq.iss). The caller must quit
   ///   the app right after this returns.
   ///
   ///   `/WAITPID=<pid>` makes the installer wait until this process has
   ///   exited before it touches any file. Without it the two would race:
-  ///   the installer would ask PureEQ to close while its files are still in
-  ///   use, PureEQ would treat that like the close button (hide to tray),
+  ///   the installer would ask SK EQ to close while its files are still in
+  ///   use, SK EQ would treat that like the close button (hide to tray),
   ///   and the silent install would give up.
   ///
   ///   (The installer is a windowed program, so it can be started
   ///   "detached"; console helpers such as PowerShell cannot — Dart starts
   ///   detached processes without a console and they exit immediately.)
-  /// * macOS: opens the .dmg; the user drags PureEQ into Applications.
+  /// * macOS: opens the .dmg; the user drags SK EQ into Applications.
   Future<void> install(File file) async {
     if (Platform.isWindows) {
       // Match the existing install mode so the update replaces it in place

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Central color palette for PureEQ.
+/// Central color palette for SK EQ.
 class AppColors {
   AppColors._();
 
@@ -37,7 +37,7 @@ class AppColors {
   }
 }
 
-/// Material 3 dark theme tuned to the PureEQ palette.
+/// Material 3 dark theme tuned to the SK EQ palette.
 class AppTheme {
   AppTheme._();
 

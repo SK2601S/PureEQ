@@ -12,7 +12,7 @@ class VolumeService {
     try {
       return await FlutterVolumeController.getVolume();
     } catch (e) {
-      debugPrint('PureEQ: getVolume failed: $e');
+      debugPrint('SK EQ: getVolume failed: $e');
       return null;
     }
   }
@@ -21,7 +21,7 @@ class VolumeService {
     try {
       await FlutterVolumeController.setVolume(volume.clamp(0.0, 1.0));
     } catch (e) {
-      debugPrint('PureEQ: setVolume failed: $e');
+      debugPrint('SK EQ: setVolume failed: $e');
     }
   }
 
@@ -29,7 +29,7 @@ class VolumeService {
     try {
       return await FlutterVolumeController.getMute();
     } catch (e) {
-      debugPrint('PureEQ: getMute failed: $e');
+      debugPrint('SK EQ: getMute failed: $e');
       return null;
     }
   }
@@ -40,7 +40,7 @@ class VolumeService {
       await FlutterVolumeController.setMute(muted);
       return true;
     } catch (e) {
-      debugPrint('PureEQ: setMute failed: $e');
+      debugPrint('SK EQ: setMute failed: $e');
       return false;
     }
   }
@@ -52,7 +52,7 @@ class VolumeService {
         () => FlutterVolumeController.addListener(onChanged, emitOnStart: false),
       );
     } catch (e) {
-      debugPrint('PureEQ: volume listener unavailable: $e');
+      debugPrint('SK EQ: volume listener unavailable: $e');
     }
   }
 

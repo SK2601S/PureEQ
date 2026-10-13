@@ -6,7 +6,7 @@ import '../../theme/app_theme.dart';
 import 'app_logo.dart';
 import 'update_banner.dart';
 
-/// "⋯" button in the title bar: Check for updates · About PureEQ.
+/// "⋯" button in the title bar: Check for updates · About SK EQ.
 /// A small cyan dot appears on it while an update is waiting.
 class AppMenuButton extends ConsumerWidget {
   const AppMenuButton({super.key});
@@ -31,7 +31,7 @@ class AppMenuButton extends ConsumerWidget {
               checkForUpdatesManually(context, ref);
             }
           case 'about':
-            showAboutPureEq(context, ref);
+            showAboutSkEq(context, ref);
         }
       },
       itemBuilder: (_) => [
@@ -56,7 +56,7 @@ class AppMenuButton extends ConsumerWidget {
             children: [
               Icon(Icons.info_outline_rounded, size: 18, color: AppColors.textSecondary),
               SizedBox(width: 12),
-              Text('About PureEQ'),
+              Text('About SK EQ'),
             ],
           ),
         ),
@@ -90,7 +90,7 @@ class AppMenuButton extends ConsumerWidget {
 }
 
 /// About dialog with the version and a "Check for updates" button.
-Future<void> showAboutPureEq(BuildContext context, WidgetRef ref) {
+Future<void> showAboutSkEq(BuildContext context, WidgetRef ref) {
   return showDialog<void>(
     context: context,
     builder: (dialogContext) => AlertDialog(
@@ -108,7 +108,7 @@ Future<void> showAboutPureEq(BuildContext context, WidgetRef ref) {
             const SizedBox(height: 8),
             const AppLogo(size: 56),
             const SizedBox(height: 16),
-            const Text('PureEQ', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+            const Text('SK EQ', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
             FutureBuilder(
               future: ref.read(updateServiceProvider).currentVersion(),

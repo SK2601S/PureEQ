@@ -93,7 +93,7 @@ class UpdateNotifier extends Notifier<UpdateState> {
   /// "Later" hides the banner for that version until the app restarts.
   AppVersion? _dismissedVersion;
 
-  /// Set by the app shell: closes PureEQ so the installer can replace it.
+  /// Set by the app shell: closes SK EQ so the installer can replace it.
   Future<void> Function()? quitForInstall;
 
   UpdateService get _service => ref.read(updateServiceProvider);
@@ -173,7 +173,7 @@ class UpdateNotifier extends Notifier<UpdateState> {
       if (Platform.isWindows) {
         state = state.copyWith(status: UpdateStatus.installing);
         // Let "Installing…" be seen briefly, then quit: the installer waits
-        // for this process to exit (/WAITPID) and reopens PureEQ when done.
+        // for this process to exit (/WAITPID) and reopens SK EQ when done.
         await Future<void>.delayed(const Duration(milliseconds: 700));
         await quitForInstall?.call();
       } else {

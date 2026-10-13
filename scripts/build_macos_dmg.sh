@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds PureEQ for macOS and packages it as dist/PureEQ-<version>.dmg.
+# Builds SK EQ for macOS and packages it as dist/SK-EQ-<version>.dmg.
 # Must run on a Mac with Flutter and Xcode installed.
 #
 #   ./scripts/build_macos_dmg.sh            # build + package
@@ -8,8 +8,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 VERSION=$(sed -nE 's/^version:[[:space:]]*([^+[:space:]]+).*/\1/p' pubspec.yaml)
-APP="build/macos/Build/Products/Release/PureEQ.app"
-DMG="dist/PureEQ-${VERSION}.dmg"
+APP="build/macos/Build/Products/Release/SK EQ.app"
+DMG="dist/SK-EQ-${VERSION}.dmg"
 
 if [[ "${1:-}" != "--no-build" ]]; then
   flutter pub get
@@ -32,5 +32,5 @@ ln -s /Applications "$STAGE/Applications"
 
 mkdir -p dist
 rm -f "$DMG"
-hdiutil create -volname "PureEQ" -srcfolder "$STAGE" -ov -format UDZO "$DMG"
+hdiutil create -volname "SK EQ" -srcfolder "$STAGE" -ov -format UDZO "$DMG"
 echo "Created $DMG"

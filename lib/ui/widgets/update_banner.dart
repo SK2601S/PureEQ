@@ -20,8 +20,8 @@ Future<void> checkForUpdatesManually(BuildContext context, WidgetRef ref) async 
   final state = ref.read(updateProvider);
   final message = switch (result) {
     UpdateCheckResult.upToDate =>
-      "You're up to date — PureEQ ${state.current ?? ''} is the latest version.",
-    UpdateCheckResult.available => 'PureEQ ${state.info?.version} is available.',
+      "You're up to date — SK EQ ${state.current ?? ''} is the latest version.",
+    UpdateCheckResult.available => 'SK EQ ${state.info?.version} is available.',
     UpdateCheckResult.failed => state.error ?? "Couldn't check for updates.",
     UpdateCheckResult.notConfigured => 'Updates are not set up for this build yet.',
   };
@@ -48,8 +48,8 @@ class UpdateBanner extends ConsumerWidget {
           Icons.downloading_rounded,
           AppColors.accent,
           state.progress == null
-              ? 'Downloading PureEQ $version…'
-              : 'Downloading PureEQ $version…  ${(state.progress! * 100).round()}%',
+              ? 'Downloading SK EQ $version…'
+              : 'Downloading SK EQ $version…  ${(state.progress! * 100).round()}%',
           null,
           [
             TextButton(onPressed: notifier.cancelDownload, child: const Text('Cancel')),
@@ -58,8 +58,8 @@ class UpdateBanner extends ConsumerWidget {
       UpdateStatus.installing => (
           Icons.restart_alt_rounded,
           AppColors.accent,
-          'Installing PureEQ $version…',
-          'PureEQ will close and reopen by itself in a moment.',
+          'Installing SK EQ $version…',
+          'SK EQ will close and reopen by itself in a moment.',
           const <Widget>[
             SizedBox(
               width: 18,
@@ -72,8 +72,8 @@ class UpdateBanner extends ConsumerWidget {
       UpdateStatus.openedInstaller => (
           Icons.install_desktop_rounded,
           AppColors.accent,
-          'Almost done — drag PureEQ into Applications',
-          'Then quit this window and open the new PureEQ.',
+          'Almost done — drag SK EQ into Applications',
+          'Then quit this window and open the new SK EQ.',
           [
             FilledButton(onPressed: notifier.dismiss, child: const Text('OK')),
           ],
@@ -92,7 +92,7 @@ class UpdateBanner extends ConsumerWidget {
       _ => (
           Icons.system_update_alt_rounded,
           AppColors.accent,
-          'PureEQ $version is available',
+          'SK EQ $version is available',
           'You have ${state.current ?? 'an older version'}. Your settings and presets are kept.',
           [
             if (info?.notes != null || info?.notesUrl != null) ...[
@@ -188,7 +188,7 @@ class UpdateBanner extends ConsumerWidget {
           borderRadius: BorderRadius.circular(20),
           side: const BorderSide(color: AppColors.border),
         ),
-        title: Text("What's new in PureEQ ${info.version}", style: const TextStyle(fontSize: 18)),
+        title: Text("What's new in SK EQ ${info.version}", style: const TextStyle(fontSize: 18)),
         content: SizedBox(
           width: 420,
           child: SingleChildScrollView(

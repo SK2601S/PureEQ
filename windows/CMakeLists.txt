@@ -4,7 +4,7 @@ project(pure_eq LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
-set(BINARY_NAME "PureEQ")
+set(BINARY_NAME "SKEQ")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.
@@ -107,7 +107,7 @@ install(FILES "${AOT_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
   CONFIGURATIONS Profile;Release
   COMPONENT Runtime)
 
-# PureEQ: bundle the MSVC runtime (msvcp140.dll, vcruntime140*.dll) next to
+# SK EQ: bundle the MSVC runtime (msvcp140.dll, vcruntime140*.dll) next to
 # the exe so the app starts on PCs without the VC++ Redistributable installed.
 set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION "${INSTALL_BUNDLE_LIB_DIR}")
 set(CMAKE_INSTALL_SYSTEM_RUNTIME_COMPONENT Runtime)

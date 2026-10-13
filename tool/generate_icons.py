@@ -1,4 +1,4 @@
-"""Generates the PureEQ app icon for Windows (.ico) and macOS (AppIcon set).
+"""Generates the SK EQ app icon for Windows (.ico) and macOS (AppIcon set).
 
 Usage (from the project root):  python tool/generate_icons.py
 Requires Pillow:                python -m pip install pillow

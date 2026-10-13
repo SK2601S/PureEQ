@@ -3,7 +3,7 @@ import FlutterMacOS
 
 @main
 class AppDelegate: FlutterAppDelegate {
-  // PureEQ hides its window to the menu bar instead of closing, so the app
+  // SK EQ hides its window to the menu bar instead of closing, so the app
   // must keep running when no window is visible.
   override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
     return false

@@ -1,7 +1,7 @@
 /// App-wide configuration.
 library;
 
-/// Where PureEQ looks for updates: a small JSON manifest (see README →
+/// Where SK EQ looks for updates: a small JSON manifest (see README →
 /// "Releasing an update"). With GitHub Releases the stable URL is
 /// `https://github.com/OWNER/REPO/releases/latest/download/latest.json`,
 /// which always points at the newest release's manifest.
@@ -22,7 +22,7 @@ const String kUpdateManifestUrl = String.fromEnvironment(
 /// code behind it is compiled out.
 const bool kTestAutoAcceptUpdate = bool.fromEnvironment('PUREEQ_TEST_AUTO_UPDATE');
 
-/// How often a running PureEQ re-checks for updates (besides at startup).
+/// How often a running SK EQ re-checks for updates (besides at startup).
 const Duration kUpdateCheckInterval = Duration(hours: 6);
 
 /// Delay before the first automatic check, so startup stays snappy.

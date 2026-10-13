@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "PureEQ" "\0"
-            VALUE "FileDescription", "PureEQ" "\0"
+            VALUE "CompanyName", "SK EQ" "\0"
+            VALUE "FileDescription", "SK EQ" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "PureEQ" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 PureEQ. All rights reserved." "\0"
-            VALUE "OriginalFilename", "PureEQ.exe" "\0"
-            VALUE "ProductName", "PureEQ" "\0"
+            VALUE "InternalName", "SKEQ" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 SK EQ. All rights reserved." "\0"
+            VALUE "OriginalFilename", "SKEQ.exe" "\0"
+            VALUE "ProductName", "SK EQ" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

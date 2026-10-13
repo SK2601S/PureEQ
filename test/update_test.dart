@@ -20,7 +20,7 @@ Map<String, dynamic> _manifest(String version, {String? sha}) => {
       'notes': 'Faster spectrum.',
       'notesUrl': 'https://updates.example/notes',
       UpdateService.platformKey!: {
-        'url': 'https://updates.example/PureEQ-Setup-$version.exe',
+        'url': 'https://updates.example/SK-EQ-Setup-$version.exe',
         'sha256': sha ?? sha256.convert(_installer).toString(),
       },
     };
@@ -39,7 +39,7 @@ void main() {
 
   setUp(() {
     PackageInfo.setMockInitialValues(
-      appName: 'PureEQ',
+      appName: 'SK EQ',
       packageName: 'pure_eq',
       version: '1.0.0',
       buildNumber: '1',
@@ -68,7 +68,7 @@ void main() {
       final service = UpdateService(manifestUrl: _manifestUrl, client: _server(_manifest('1.1.0')));
       final info = await service.fetchLatest();
       expect(info.version, const AppVersion(1, 1, 0));
-      expect(info.downloadUrl.path, endsWith('PureEQ-Setup-1.1.0.exe'));
+      expect(info.downloadUrl.path, endsWith('SK-EQ-Setup-1.1.0.exe'));
       expect(info.notes, 'Faster spectrum.');
     });
 
@@ -138,7 +138,7 @@ void main() {
   });
 
   tearDownAll(() async {
-    final dir = Directory('${Directory.systemTemp.path}${Platform.pathSeparator}pureeq-update');
+    final dir = Directory('${Directory.systemTemp.path}${Platform.pathSeparator}sk-eq-update');
     if (await dir.exists()) await dir.delete(recursive: true);
   });
 }

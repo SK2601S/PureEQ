@@ -38,7 +38,7 @@ class TopBar extends StatelessWidget {
             const AppLogo(size: 28),
             const SizedBox(width: 10),
             const Text(
-              'PureEQ',
+              'SK EQ',
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, letterSpacing: 0.2),
             ),
             const Spacer(),
