@@ -169,7 +169,10 @@ class ApoService {
 class ApoConfig {
   ApoConfig._();
 
-  static const String _tag = '# SK EQ';
+  /// Marker line written above SK EQ's include. It must be a line of its own:
+  /// Equalizer APO has no end-of-line comments, so `Include: x.txt  # note`
+  /// would make it look for a file literally named "x.txt  # note".
+  static const String _marker = '# SK EQ: managed automatically';
   static const String _offNote = '# turned off by SK EQ (SK EQ → Sound → give control back)';
 
   /// 1/3-octave centre frequencies, 20 Hz – 20 kHz. Sampling SK EQ's smooth
@@ -213,15 +216,18 @@ class ApoConfig {
     while (out.isNotEmpty && out.last.trim().isEmpty) {
       out.removeLast();
     }
-    out.add('Include: ${ApoService.fileName}  $_tag');
+    out
+      ..add(_marker)
+      ..add('Include: ${ApoService.fileName}');
     return '${out.join('\r\n')}\r\n';
   }
 
-  /// Reverses [connect].
+  /// Reverses [connect]. Also removes the broken `Include: sk-eq.txt  # SK EQ`
+  /// line written by SK EQ 1.2.0.
   static String disconnect(String config) {
     final out = <String>[];
     for (final line in _lines(config)) {
-      if (line.trimRight().endsWith(_tag) && line.contains(ApoService.fileName)) continue;
+      if (line.trim() == _marker || _isOwnInclude(line)) continue;
       if (line.contains(_offNote)) {
         out.add(line.replaceFirst(RegExp(r'^\s*#\s*'), '').replaceFirst(_offNote, '').trimRight());
       } else {
@@ -253,11 +259,12 @@ class ApoConfig {
                 .trim(),
       ];
 
-  static bool _isActiveInclude(String line) {
-    final t = line.trim();
-    return t.toLowerCase().startsWith('include:') &&
-        !t.toLowerCase().contains(ApoService.fileName);
-  }
+  static bool _isInclude(String line) => line.trim().toLowerCase().startsWith('include:');
+
+  static bool _isOwnInclude(String line) =>
+      _isInclude(line) && line.toLowerCase().contains(ApoService.fileName);
+
+  static bool _isActiveInclude(String line) => _isInclude(line) && !_isOwnInclude(line);
 
   static List<String> _lines(String text) => text.split(RegExp(r'\r?\n'));
 

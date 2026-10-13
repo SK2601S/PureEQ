@@ -18,6 +18,17 @@ void main() {
       expect(ApoConfig.otherActiveIncludes(restored), ['peace.txt']);
     });
 
+    test('include line is plain: Equalizer APO has no end-of-line comments', () {
+      final connected = ApoConfig.connect(peaceConfig);
+      final include = connected.split('\r\n').singleWhere((l) => l.startsWith('Include: sk-eq'));
+      expect(include, 'Include: sk-eq.txt');
+    });
+
+    test('repairs the broken line written by 1.2.0', () {
+      const broken = 'Include: sk-eq.txt  # SK EQ\r\n';
+      expect(ApoConfig.connect(broken), '# SK EQ: managed automatically\r\nInclude: sk-eq.txt\r\n');
+    });
+
     test('connecting twice changes nothing', () {
       final once = ApoConfig.connect(peaceConfig);
       expect(ApoConfig.connect(once), once);
