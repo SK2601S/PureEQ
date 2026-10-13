@@ -100,6 +100,11 @@ jobs:
               windows: {url: $exe, sha256: $exeSha},
               macos: {url: $dmg, sha256: $dmgSha}}' > dist/latest.json
           cat dist/latest.json
+          # Version-less copies give permanent "latest" links for websites:
+          #   https://github.com/<repo>/releases/latest/download/SK-EQ-Setup.exe
+          #   https://github.com/<repo>/releases/latest/download/SK-EQ.dmg
+          cp "dist/$EXE" dist/SK-EQ-Setup.exe
+          cp "dist/$DMG" dist/SK-EQ.dmg
       - uses: softprops/action-gh-release@v2
         with:
           body_path: notes.md
