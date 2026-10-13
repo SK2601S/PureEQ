@@ -126,7 +126,7 @@ lib/
 
 Flutter apps can't insert a filter into Windows' audio path, so SK EQ drives **Equalizer APO** instead. SK EQ writes its curve to `sk-eq.txt` in Equalizer APO's config folder and adds `Include: sk-eq.txt` to `config.txt`. Equalizer APO reloads the file instantly, so sliders, the curve, presets, Bass/Treble, EQ ON/OFF and A/B all act on every app's sound.
 
-- **Setup:** install Equalizer APO. In its **Configurator**, tick your playback device (for example *Headset (EarPods)*), click OK, and restart the PC. The **status pill** in SK EQ's title bar shows *Live* once it works. Click the pill to see which devices are covered and to open the Configurator.
+- **Setup:** install Equalizer APO. When it asks which devices to use (its **Device Selector**, called *Configurator* in older versions), tick your playback device (for example *Headset (EarPods)*), click OK, and restart the PC. The **status pill** in SK EQ's title bar shows *Live* once it works. Click the pill to see which devices are covered and to choose more devices.
 - **Accuracy and headroom:** the curve is sent as 31 points at ⅓-octave steps (20 Hz – 20 kHz), so what you hear matches what you see. A negative preamp equal to the largest boost prevents clipping.
 - **Other front-ends (e.g. Peace):** if another app already controls Equalizer APO, SK EQ asks before taking over. Taking over comments out that app's `Include:` line; it doesn't delete it. **Give control back** restores it.
 - **Bypass:** EQ OFF and A/B "B" write a flat file, so you hear the original sound immediately.

@@ -138,11 +138,12 @@ class SoundNotifier extends Notifier<SoundState> {
     await refresh();
   }
 
-  /// Opens Equalizer APO's Configurator to tick devices (asks for admin).
-  Future<bool> openConfigurator() async {
+  /// Opens Equalizer APO's device selector to tick devices (asks for admin).
+  Future<bool> openDeviceSelector() async {
     final dir = _installDir;
     if (dir == null) return false;
-    return launchUrl(Uri.file(ApoService.configuratorPath(dir)));
+    final path = await ApoService.deviceSelectorPath(dir);
+    return path != null && await launchUrl(Uri.file(path));
   }
 
   Future<void> openDownloadPage() =>

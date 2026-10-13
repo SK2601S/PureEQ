@@ -108,8 +108,15 @@ class ApoService {
   Future<void> writeCurve(String configDir, List<double> gains, {required bool processing}) =>
       _writeAtomic(_join(configDir, fileName), ApoConfig.render(gains, processing: processing));
 
-  /// Equalizer APO's Configurator, where devices are ticked (needs admin).
-  static String configuratorPath(String installDir) => _join(installDir, 'Configurator.exe');
+  /// The tool where devices are ticked (needs admin): `DeviceSelector.exe`
+  /// in Equalizer APO 1.4+, `Configurator.exe` in older versions.
+  static Future<String?> deviceSelectorPath(String installDir) async {
+    for (final name in const ['DeviceSelector.exe', 'Configurator.exe']) {
+      final path = _join(installDir, name);
+      if (await File(path).exists()) return path;
+    }
+    return null;
+  }
 
   // ---------------------------------------------------------------------------
 

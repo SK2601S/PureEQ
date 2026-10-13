@@ -96,7 +96,7 @@ class _SoundDialog extends ConsumerWidget {
           style: muted,
         ));
         step('1. Download and install Equalizer APO.');
-        step('2. In its Configurator, tick your playback device (for example your headphones).');
+        step('2. When it asks which devices to use, tick your playback device (for example your headphones).');
         step('3. Restart your PC, then open SK EQ.');
         actions.add(FilledButton(onPressed: n.openDownloadPage, child: const Text('Get Equalizer APO')));
       case SoundStatus.otherInControl:
@@ -150,10 +150,10 @@ class _SoundDialog extends ConsumerWidget {
         }
         if (s.devices.any((d) => !d.apoEnabled)) {
           children.add(const SizedBox(height: 10));
-          step('To enable a device: open the Configurator, tick it, click OK, then restart your PC.');
+          step('To enable a device: choose devices, tick it, click OK, then restart your PC.');
           actions.add(OutlinedButton(
-            onPressed: n.openConfigurator,
-            child: const Text('Open Configurator'),
+            onPressed: n.openDeviceSelector,
+            child: const Text('Choose devices'),
           ));
         }
         if (s.switchedOffApps.isNotEmpty) {
