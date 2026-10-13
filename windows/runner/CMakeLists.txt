@@ -38,6 +38,9 @@ target_link_libraries(${BINARY_NAME} PRIVATE flutter flutter_wrapper_app)
 target_link_libraries(${BINARY_NAME} PRIVATE "dwmapi.lib")
 # Windows Runtime (media session control in media_control.cpp).
 target_link_libraries(${BINARY_NAME} PRIVATE "windowsapp.lib")
+# C++/WinRT needs C++20 coroutines: newer MSVC (VS 18+) rejects the old
+# <experimental/coroutine> it falls back to under C++17.
+target_compile_features(${BINARY_NAME} PRIVATE cxx_std_20)
 target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
 # Run the Flutter tool portions of the build. This must not be removed.
