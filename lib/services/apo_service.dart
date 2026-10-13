@@ -38,11 +38,16 @@ class ApoService {
   static const String _interfaceProp = '{b3f8fa53-0004-438e-9003-51a46e139bfc},6';
 
   /// Equalizer APO's install and config folders, or null if not installed.
+  ///
+  /// The driver DLL must exist: uninstalling Equalizer APO leaves its
+  /// registry key and config folder behind, which alone mean nothing.
   Future<({String install, String config})?> locate() async {
     final install = await _regValue(_apoKey, 'InstallPath');
     final config = await _regValue(_apoKey, 'ConfigPath');
     if (install == null || config == null) return null;
-    if (!await File(_join(config, 'config.txt')).exists()) return null;
+    if (!await File(_join(install, 'EqualizerAPO.dll')).exists()) return null;
+    final configFile = File(_join(config, 'config.txt'));
+    if (!await configFile.exists()) await configFile.create(recursive: true);
     return (install: install, config: config);
   }
 
