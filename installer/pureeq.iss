@@ -37,7 +37,11 @@ ArchitecturesInstallIn64BitMode=x64compatible
 ; Installs per-user without admin rights; the user may choose "all users".
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
-CloseApplications=yes
+; Close running copies before replacing files. "force": if a copy does not
+; close when asked (it hides to the tray instead), end it — otherwise its
+; files stay in use and a silent update fails. Settings are saved within
+; half a second of any change, so nothing is lost.
+CloseApplications=force
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -62,8 +66,10 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopico
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
 ; In-app update: the app runs this installer with /SILENT /UPDATE=1 and quits;
-; reopen it on the new version when the install finishes.
-Filename: "{app}\{#AppExe}"; Flags: nowait; Check: IsInAppUpdate
+; reopen it on the new version when the install finishes. runasoriginaluser:
+; an all-users update runs elevated, but the app must reopen as the normal
+; user, not as administrator.
+Filename: "{app}\{#AppExe}"; Flags: nowait runasoriginaluser; Check: IsInAppUpdate
 
 [Code]
 const
