@@ -85,6 +85,7 @@ The manifest address is set at build time with `--dart-define=PUREEQ_UPDATE_URL=
 | Master volume | Reads and sets the real OS volume and mute, and follows changes made with the media keys. |
 | Tray | A tray icon (Windows) or menu bar icon (macOS) with Show, Equalizer on/off and Quit. Closing the window hides SK EQ to the tray, where it keeps running. |
 | Window | Frameless window that fits your screen. Windows 11–style caption buttons on Windows; native traffic lights on macOS. |
+| Real sound | On Windows, changes the actual sound of every app (headphones, speakers) through Equalizer APO, with a **Live / Preview only** status in the title bar. See [Real sound](#real-sound-windows). |
 | Updates | Checks automatically and from **⋯ → Check for updates**. A message at the top offers the new version, and **Update now** installs it and restarts SK EQ. See [Updates](#updates). |
 | Shortcuts | **B** = A/B compare, **E** = EQ on/off, **Ctrl/⌘+S** = save preset. |
 | Performance | The bars are the only layer redrawn every frame, the curve redraws only while it moves, glows avoid blur filters, and animation pauses while the window is minimized or in the tray. |
@@ -118,8 +119,14 @@ lib/
 
 - **Master volume and mute are real.** They control the system output device.
 - **The spectrum is simulated.** Capturing system-wide audio needs a loopback source: WASAPI loopback on Windows, or a virtual device such as BlackHole on macOS. The simulation is shaped by the EQ curve and the volume, so every control changes what you see. To show real audio, feed FFT magnitudes into `SpectrumSimulation.levels`.
-- **The EQ does not process system audio yet.** Flutter cannot insert a filter into the OS audio path. `EqState.effectiveGains` holds the final 10 gains in dB, ready to send to a real backend:
-  - **Windows:** [Equalizer APO](https://sourceforge.net/projects/equalizerapo/). Write a `GraphicEQ: 31 g1; 63 g2; …` line to its `config.txt`, and it applies the EQ system-wide right away.
-  - **macOS:** route audio through a virtual device and apply the EQ with `AVAudioUnitEQ` in a small native plugin. eqMac uses this approach.
+- **On Windows the EQ changes the real sound through [Equalizer APO](https://sourceforge.net/projects/equalizerapo/)**, a free, system-wide audio driver. See [Real sound](#real-sound-windows).
+- **On macOS the EQ is a preview only.** Processing system audio on macOS needs a virtual audio device, which is not built yet.
 
-`system_tray` was left out because it is optional and needs tray icon assets for each platform. Add it in `main.dart` if you want the app to run from the menu bar or tray.
+## Real sound (Windows)
+
+Flutter apps can't insert a filter into Windows' audio path, so SK EQ drives **Equalizer APO** instead. SK EQ writes its curve to `sk-eq.txt` in Equalizer APO's config folder and adds `Include: sk-eq.txt` to `config.txt`. Equalizer APO reloads the file instantly, so sliders, the curve, presets, Bass/Treble, EQ ON/OFF and A/B all act on every app's sound.
+
+- **Setup:** install Equalizer APO. In its **Configurator**, tick your playback device (for example *Headset (EarPods)*), click OK, and restart the PC. The **status pill** in SK EQ's title bar shows *Live* once it works. Click the pill to see which devices are covered and to open the Configurator.
+- **Accuracy and headroom:** the curve is sent as 31 points at ⅓-octave steps (20 Hz – 20 kHz), so what you hear matches what you see. A negative preamp equal to the largest boost prevents clipping.
+- **Other front-ends (e.g. Peace):** if another app already controls Equalizer APO, SK EQ asks before taking over. Taking over comments out that app's `Include:` line; it doesn't delete it. **Give control back** restores it.
+- **Bypass:** EQ OFF and A/B "B" write a flat file, so you hear the original sound immediately.

@@ -9,6 +9,7 @@ import '../../theme/app_theme.dart';
 import 'app_logo.dart';
 import 'app_menu.dart';
 import 'preset_selector.dart';
+import 'sound_status.dart';
 import 'window_buttons.dart';
 
 /// Custom title bar.
@@ -42,6 +43,8 @@ class TopBar extends StatelessWidget {
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, letterSpacing: 0.2),
             ),
             const Spacer(),
+            const SoundStatusChip(),
+            const SizedBox(width: 10),
             const _EqToggle(),
             const SizedBox(width: 12),
             const PresetSelector(),
