@@ -7,6 +7,7 @@
 #include <string>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "media_control.h"
 
 namespace {
 // Posted by the capture thread when a new spectrum frame is ready.
@@ -78,24 +79,16 @@ void FlutterWindow::SetUpMediaChannel() {
   media_channel_->SetMethodCallHandler(
       [](const flutter::MethodCall<flutter::EncodableValue>& call,
          std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-        WORD key = 0;
         const std::string& name = call.method_name();
-        if (name == "playPause") key = VK_MEDIA_PLAY_PAUSE;
-        else if (name == "next") key = VK_MEDIA_NEXT_TRACK;
-        else if (name == "previous") key = VK_MEDIA_PREV_TRACK;
-        else if (name == "stop") key = VK_MEDIA_STOP;
-        if (key == 0) {
+        if (name != "playPause" && name != "next" && name != "previous" && name != "stop" &&
+            name != "play" && name != "pause") {
           result->NotImplemented();
           return;
         }
-        // Press and release the media key, exactly like a keyboard would.
-        INPUT inputs[2] = {};
-        inputs[0].type = INPUT_KEYBOARD;
-        inputs[0].ki.wVk = key;
-        inputs[1] = inputs[0];
-        inputs[1].ki.dwFlags = KEYEVENTF_KEYUP;
-        const UINT sent = ::SendInput(2, inputs, sizeof(INPUT));
-        result->Success(flutter::EncodableValue(sent == 2));
+        // Talks to Windows' "now playing" media session (works with
+        // browsers); falls back to media keys. Asynchronous.
+        media_control::Send(name);
+        result->Success(flutter::EncodableValue(true));
       });
 }
 
@@ -128,10 +121,13 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
       flutter_controller_->engine()->ReloadSystemFonts();
       break;
     case kSpectrumFrameMessage:
-      // Forward the newest frame (Float32List of dBFS per bar) to Dart.
-      if (spectrum_sink_) {
+      {
+        // Forward the newest frame (Float32List of dBFS per bar) to Dart.
+        // Always take it, even with no listener, so "pending" is cleared.
         std::vector<float> bars = audio_capture_.TakeLatest();
-        if (!bars.empty()) spectrum_sink_->Success(flutter::EncodableValue(std::move(bars)));
+        if (spectrum_sink_ && !bars.empty()) {
+          spectrum_sink_->Success(flutter::EncodableValue(std::move(bars)));
+        }
       }
       return 0;
   }

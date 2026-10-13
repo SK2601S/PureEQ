@@ -107,7 +107,7 @@ class _SpectrumVisualizerState extends ConsumerState<SpectrumVisualizer> {
             if (_timer != null && _sim.isQuiet && _sim.liveHasSignal) {
               _timer!.cancel();
               _timer = null;
-              _scheduleNext();
+              if (!_paused) _requestFrame();
             }
           }
         },

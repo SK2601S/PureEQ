@@ -75,6 +75,14 @@ void AudioCapture::Start(HWND target, UINT message) {
   if (running_) return;
   target_ = target;
   message_ = message;
+  {
+    // A frame left "pending" by a previous run would block all new
+    // notifications (Publish only posts when nothing is pending), freezing
+    // the bars after the window was hidden and shown again.
+    std::lock_guard<std::mutex> lock(mutex_);
+    pending_ = false;
+    latest_.clear();
+  }
   running_ = true;
   thread_ = std::thread([this] { Run(); });
 }
