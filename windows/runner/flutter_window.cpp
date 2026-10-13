@@ -1,8 +1,16 @@
 #include "flutter_window.h"
 
+#include <flutter/event_stream_handler_functions.h>
+#include <flutter/standard_method_codec.h>
+
 #include <optional>
 
 #include "flutter/generated_plugin_registrant.h"
+
+namespace {
+// Posted by the capture thread when a new spectrum frame is ready.
+constexpr UINT kSpectrumFrameMessage = WM_APP + 0x51;
+}  // namespace
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
@@ -25,6 +33,7 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
+  SetUpSpectrumChannel();
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
@@ -39,7 +48,30 @@ bool FlutterWindow::OnCreate() {
   return true;
 }
 
+void FlutterWindow::SetUpSpectrumChannel() {
+  spectrum_channel_ = std::make_unique<flutter::EventChannel<flutter::EncodableValue>>(
+      flutter_controller_->engine()->messenger(), "skeq/spectrum",
+      &flutter::StandardMethodCodec::GetInstance());
+  auto handler = std::make_unique<flutter::StreamHandlerFunctions<flutter::EncodableValue>>(
+      [this](const flutter::EncodableValue*,
+             std::unique_ptr<flutter::EventSink<flutter::EncodableValue>>&& events)
+          -> std::unique_ptr<flutter::StreamHandlerError<flutter::EncodableValue>> {
+        spectrum_sink_ = std::move(events);
+        audio_capture_.Start(GetHandle(), kSpectrumFrameMessage);
+        return nullptr;
+      },
+      [this](const flutter::EncodableValue*)
+          -> std::unique_ptr<flutter::StreamHandlerError<flutter::EncodableValue>> {
+        audio_capture_.Stop();
+        spectrum_sink_.reset();
+        return nullptr;
+      });
+  spectrum_channel_->SetStreamHandler(std::move(handler));
+}
+
 void FlutterWindow::OnDestroy() {
+  audio_capture_.Stop();
+  spectrum_sink_.reset();
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
   }
@@ -65,6 +97,13 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
     case WM_FONTCHANGE:
       flutter_controller_->engine()->ReloadSystemFonts();
       break;
+    case kSpectrumFrameMessage:
+      // Forward the newest frame (Float32List of dBFS per bar) to Dart.
+      if (spectrum_sink_) {
+        std::vector<float> bars = audio_capture_.TakeLatest();
+        if (!bars.empty()) spectrum_sink_->Success(flutter::EncodableValue(std::move(bars)));
+      }
+      return 0;
   }
 
   return Win32Window::MessageHandler(hwnd, message, wparam, lparam);

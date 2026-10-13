@@ -118,7 +118,7 @@ lib/
 ## Important: what is real and what is simulated
 
 - **Master volume and mute are real.** They control the system output device.
-- **The spectrum is simulated.** Capturing system-wide audio needs a loopback source: WASAPI loopback on Windows, or a virtual device such as BlackHole on macOS. The simulation is shaped by the EQ curve and the volume, so every control changes what you see. To show real audio, feed FFT magnitudes into `SpectrumSimulation.levels`.
+- **The spectrum shows the real sound on Windows.** SK EQ listens to what is playing on the default output device (WASAPI loopback) and draws 128 bars about 30 times a second. With nothing playing, the bars stay at zero. On macOS the spectrum is a simulated animation.
 - **On Windows the EQ changes the real sound through [Equalizer APO](https://sourceforge.net/projects/equalizerapo/)**, a free, system-wide audio driver. See [Real sound](#real-sound-windows).
 - **On macOS the EQ is a preview only.** Processing system audio on macOS needs a virtual audio device, which is not built yet.
 

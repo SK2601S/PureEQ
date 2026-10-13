@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/eq_band.dart';
@@ -62,9 +64,43 @@ class _SpectrumVisualizerState extends ConsumerState<SpectrumVisualizer> {
   /// lands on the following vsync (≈ 33 ms at 60 Hz).
   static const Duration _idleDelay = Duration(milliseconds: 22);
 
+  /// While silent and settled (nothing playing, nothing moving), check for
+  /// sound only a few times a second.
+  static const Duration _quietDelay = Duration(milliseconds: 150);
+
   Timer? _timer;
   int? _frameCallbackId;
   Duration? _lastFrame;
+
+  /// Real-time spectrum of what is playing (Windows only; see
+  /// windows/runner/audio_capture.cpp). Cancelled while paused, which also
+  /// stops the native capture.
+  static const _liveChannel = EventChannel('skeq/spectrum');
+  StreamSubscription<dynamic>? _liveSub;
+
+  void _syncLiveInput() {
+    if (!Platform.isWindows) return;
+    if (_paused) {
+      _liveSub?.cancel();
+      _liveSub = null;
+      _sim.clearLive();
+    } else {
+      _liveSub ??= _liveChannel.receiveBroadcastStream().listen(
+        (frame) {
+          if (frame is Float32List) {
+            _sim.pushLive(frame);
+            // Sound after silence: wake the pacer right away.
+            if (_timer != null && _sim.isQuiet && _sim.liveHasSignal) {
+              _timer!.cancel();
+              _timer = null;
+              _scheduleNext();
+            }
+          }
+        },
+        onError: (Object _) => _sim.clearLive(),
+      );
+    }
+  }
 
   /// Pause sources: window events (minimize / tray) and the OS lifecycle.
   /// While paused no frames are requested at all — 0 CPU / GPU.
@@ -79,6 +115,7 @@ class _SpectrumVisualizerState extends ConsumerState<SpectrumVisualizer> {
       _lifecycleHidden = s == AppLifecycleState.hidden || s == AppLifecycleState.paused;
       _syncPacer();
     });
+    _syncLiveInput();
     _requestFrame();
   }
 
@@ -104,7 +141,7 @@ class _SpectrumVisualizerState extends ConsumerState<SpectrumVisualizer> {
       _timer = null;
       _requestFrame();
     } else {
-      _timer ??= Timer(_idleDelay, () {
+      _timer ??= Timer(_sim.isQuiet ? _quietDelay : _idleDelay, () {
         _timer = null;
         if (!_paused) _requestFrame();
       });
@@ -113,6 +150,7 @@ class _SpectrumVisualizerState extends ConsumerState<SpectrumVisualizer> {
 
   /// Starts or stops the frame loop to match [_paused].
   void _syncPacer() {
+    _syncLiveInput();
     if (_paused) {
       _timer?.cancel();
       _timer = null;
@@ -231,6 +269,50 @@ class SpectrumSimulation extends ChangeNotifier {
   static const double _bpm = 124;
   static const double _dbRange = 66; // dB span from silent to full-scale bar
 
+  // --- Real audio (Windows) ------------------------------------------------
+  //
+  // When the native side streams the spectrum of what is actually playing
+  // (WASAPI loopback, see windows/runner/audio_capture.cpp), the bars show
+  // that instead of the synthetic groove. Values are dBFS per bar, already
+  // tilted +3 dB/octave; silence arrives as very low values, so the bars fall.
+
+  /// Display window for real input, in dBFS: [_liveFloorDb] = empty bar,
+  /// [_liveFloorDb] + [_liveRangeDb] = full bar.
+  static const double _liveFloorDb = -78;
+  static const double _liveRangeDb = 66;
+
+  List<double>? _live;
+
+  /// True once real audio frames are being received.
+  bool get hasLiveInput => _live != null;
+
+  /// Called for every frame from the native capture.
+  void pushLive(List<double> dbPerBar) {
+    if (dbPerBar.length == barCount) _live = dbPerBar;
+  }
+
+  /// Live input stopped (window hidden / capture unavailable).
+  void clearLive() => _live = null;
+
+  /// Whether the latest live frame contains audible sound.
+  bool get liveHasSignal {
+    final live = _live;
+    if (live == null) return false;
+    for (final db in live) {
+      if (db > _liveFloorDb) return true;
+    }
+    return false;
+  }
+
+  /// Nothing to show and nothing moving: the visualizer can slow right down.
+  bool get isQuiet {
+    if (needsFullRate) return false;
+    for (var j = 0; j < barCount; j++) {
+      if (levels[j] > 0.003 || peaks[j] > 0.003) return false;
+    }
+    return true;
+  }
+
   /// Updates what the simulation eases toward. With [instant] (A/B switch)
   /// the processed signal jumps immediately instead of gliding.
   void setTargets({
@@ -306,7 +388,36 @@ class SpectrumSimulation extends ChangeNotifier {
     final log900 = math.log(900) / math.ln2;
     final log4k = math.log(4000) / math.ln2;
 
+    final live = _live;
     for (var j = 0; j < barCount; j++) {
+      final double target;
+      if (live != null) {
+        // Real audio: what you hear (already processed by the system EQ).
+        target = ((live[j] - _liveFloorDb) / _liveRangeDb).clamp(0.0, 1.0);
+      } else {
+        target = _syntheticLevel(j, kick, snare, hat, melodyA, melodyB, volumeDb, log40, log900, log4k);
+      }
+      final current = levels[j];
+      levels[j] = current + (target - current) * (target > current ? attack : release);
+
+      // Peak hold: wait ~0.6 s at the max, then fall.
+      if (levels[j] >= peaks[j]) {
+        peaks[j] = levels[j];
+        _peakHold[j] = 0.6;
+      } else if (_peakHold[j] > 0) {
+        _peakHold[j] -= dt;
+      } else {
+        peaks[j] = math.max(levels[j], peaks[j] - dt * 0.45);
+      }
+    }
+
+    notifyListeners();
+  }
+
+  /// One bar of the synthetic groove (used where real audio isn't available).
+  double _syntheticLevel(int j, double kick, double snare, double hat, double melodyA,
+      double melodyB, double volumeDb, double log40, double log900, double log4k) {
+    {
       final f = frequencies[j];
       final t = j / (barCount - 1);
       final oct = math.log(f) / math.ln2;
@@ -329,22 +440,8 @@ class SpectrumSimulation extends ChangeNotifier {
       db += interpolateGain(appliedGains, f);
       db += volumeDb;
 
-      final target = ((db + _dbRange) / _dbRange).clamp(0.0, 1.0);
-      final current = levels[j];
-      levels[j] = current + (target - current) * (target > current ? attack : release);
-
-      // Peak hold: wait ~0.6 s at the max, then fall.
-      if (levels[j] >= peaks[j]) {
-        peaks[j] = levels[j];
-        _peakHold[j] = 0.6;
-      } else if (_peakHold[j] > 0) {
-        _peakHold[j] -= dt;
-      } else {
-        peaks[j] = math.max(levels[j], peaks[j] - dt * 0.45);
-      }
+      return ((db + _dbRange) / _dbRange).clamp(0.0, 1.0);
     }
-
-    notifyListeners();
   }
 
   /// Eases [from] toward [to], snapping once within 0.001 so the value
