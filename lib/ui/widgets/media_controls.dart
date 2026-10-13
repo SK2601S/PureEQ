@@ -34,7 +34,16 @@ class MediaControls extends ConsumerWidget {
             primary: true,
           ),
           _MediaButton(icon: Icons.skip_next_rounded, tooltip: 'Next', onTap: media.next),
-          _MediaButton(icon: Icons.stop_rounded, tooltip: 'Stop', onTap: media.stop),
+          // Pauses rather than sending the "media stop" key: many players
+          // (browsers, Spotify) end their session on Stop, after which Play
+          // can no longer resume. Only acts while something is playing.
+          _MediaButton(
+            icon: Icons.stop_rounded,
+            tooltip: 'Stop',
+            onTap: () {
+              if (playing) media.playPause();
+            },
+          ),
         ],
       ),
     );
