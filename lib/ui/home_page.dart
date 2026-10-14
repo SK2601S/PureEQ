@@ -132,6 +132,11 @@ class _HomePageState extends ConsumerState<HomePage> with WindowListener {
         ref.watch(updateProvider.select((s) => s.bannerVisible));
     final closeToTray =
         ref.watch(settingsProvider.select((s) => s.closeToTray));
+    // Rebuild on theme / accent changes (and system light/dark switches,
+    // which arrive through Theme). The palette has already been applied by
+    // SkEqApp; the body below is keyed by it, so everything redraws.
+    ref.watch(settingsProvider.select((s) => (s.theme, s.accent)));
+    Theme.of(context);
 
     return CallbackShortcuts(
       bindings: {
