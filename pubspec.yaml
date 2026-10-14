@@ -1,7 +1,7 @@
 name: pure_eq
 description: "SK EQ — a minimal, dark-mode system equalizer with a real-time spectrum visualizer."
 publish_to: 'none'
-version: 1.6.0+12
+version: 1.7.0+13
 
 environment:
   # Dart 3.6 ships with Flutter 3.27, the first release with Color.withValues().

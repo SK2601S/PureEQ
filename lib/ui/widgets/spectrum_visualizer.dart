@@ -201,6 +201,14 @@ class _SpectrumVisualizerState extends ConsumerState<SpectrumVisualizer> {
         ref.watch(settingsProvider.select((s) => s.spectrumQuality)).idleDelay;
     final look = ref.watch(settingsProvider
         .select((s) => (s.spectrumStyle, s.barDensity.columns, s.showPeaks)));
+    final motion =
+        ref.watch(settingsProvider.select((s) => (s.motion, s.smoothBars)));
+    _sim
+      ..attackRate = motion.$1.attack
+      ..releaseRate = motion.$1.release
+      ..peakFall = motion.$1.peakFall
+      ..peakHoldSeconds = motion.$1.peakHold
+      ..smoothBars = motion.$2;
     final hidden = !ref.watch(windowVisibleProvider);
     if (hidden != _windowHidden) {
       _windowHidden = hidden;
@@ -422,39 +430,70 @@ class SpectrumSimulation extends ChangeNotifier {
         ? -120.0
         : 20 * math.log(_smoothedOutput) / math.ln10;
 
-    final attack = 1 - math.exp(-dt * 38);
-    final release = 1 - math.exp(-dt * 7);
+    // Rise/fall speeds come from Settings → Spectrum → Motion.
+    final attack = 1 - math.exp(-dt * attackRate);
+    final release = 1 - math.exp(-dt * releaseRate);
     final log40 = math.log(40) / math.ln2;
     final log900 = math.log(900) / math.ln2;
     final log4k = math.log(4000) / math.ln2;
 
+    // Pass 1: where each bar wants to be.
     final live = _live;
     for (var j = 0; j < barCount; j++) {
-      final double target;
-      if (live != null) {
-        // Real audio: what you hear (already processed by the system EQ).
-        target = ((live[j] - _liveFloorDb) / _liveRangeDb).clamp(0.0, 1.0);
-      } else {
-        target = _syntheticLevel(j, kick, snare, hat, melodyA, melodyB,
-            volumeDb, log40, log900, log4k);
+      _targets[j] = live != null
+          // Real audio: what you hear (already processed by the system EQ).
+          ? ((live[j] - _liveFloorDb) / _liveRangeDb).clamp(0.0, 1.0)
+          : _syntheticLevel(j, kick, snare, hat, melodyA, melodyB, volumeDb,
+              log40, log900, log4k);
+    }
+
+    // Optional "Smooth bars": blend each bar with its neighbours (1-2-3-2-1
+    // kernel) so the shape reads as a soft curve instead of jagged spikes.
+    if (smoothBars) {
+      for (var j = 0; j < barCount; j++) {
+        var sum = 0.0, weight = 0.0;
+        for (var k = -2; k <= 2; k++) {
+          final i = j + k;
+          if (i < 0 || i >= barCount) continue;
+          final w = 3.0 - k.abs();
+          sum += _targets[i] * w;
+          weight += w;
+        }
+        _blended[j] = sum / weight;
       }
+    }
+    final targets = smoothBars ? _blended : _targets;
+
+    // Pass 2: ease toward the targets (fast attack, slower release).
+    for (var j = 0; j < barCount; j++) {
+      final target = targets[j];
       final current = levels[j];
       levels[j] =
           current + (target - current) * (target > current ? attack : release);
 
-      // Peak hold: wait ~0.6 s at the max, then fall.
+      // Peak hold: wait a moment at the max, then fall.
       if (levels[j] >= peaks[j]) {
         peaks[j] = levels[j];
-        _peakHold[j] = 0.6;
+        _peakHold[j] = peakHoldSeconds;
       } else if (_peakHold[j] > 0) {
         _peakHold[j] -= dt;
       } else {
-        peaks[j] = math.max(levels[j], peaks[j] - dt * 0.45);
+        peaks[j] = math.max(levels[j], peaks[j] - dt * peakFall);
       }
     }
 
     notifyListeners();
   }
+
+  // Motion (Settings → Spectrum): rise / fall speeds and peak behaviour.
+  double attackRate = 38;
+  double releaseRate = 7;
+  double peakFall = 0.45;
+  double peakHoldSeconds = 0.6;
+  bool smoothBars = false;
+
+  late final List<double> _targets = List.filled(barCount, 0.0);
+  late final List<double> _blended = List.filled(barCount, 0.0);
 
   /// One bar of the synthetic groove (used where real audio isn't available).
   double _syntheticLevel(

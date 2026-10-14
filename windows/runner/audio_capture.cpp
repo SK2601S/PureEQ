@@ -17,8 +17,9 @@ constexpr double kPi = 3.14159265358979323846;
 constexpr double kAxisMinHz = 31.25 / 1.4142135623730951;
 constexpr double kAxisOctaves = 10.0;
 
-// How often a new spectrum frame is produced.
-constexpr ULONGLONG kFrameMs = 33;
+// How often a new spectrum frame is produced (~60 per second, so motion is
+// fluid at high refresh rates; one 4096-point FFT takes well under 1 ms).
+constexpr ULONGLONG kFrameMs = 16;
 
 template <typename T>
 void SafeRelease(T** p) {

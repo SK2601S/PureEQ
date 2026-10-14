@@ -143,6 +143,27 @@ class _SettingsDialog extends ConsumerWidget {
                       onChanged: n.setShowPeaks,
                     ),
                     const SizedBox(height: 8),
+                    const _Label('Motion'),
+                    SegmentedButton<SpectrumMotion>(
+                      showSelectedIcon: false,
+                      segments: [
+                        for (final m in SpectrumMotion.values)
+                          ButtonSegment(value: m, label: Text(m.label)),
+                      ],
+                      selected: {s.motion},
+                      onSelectionChanged: (v) => n.setMotion(v.first),
+                    ),
+                    const SizedBox(height: 6),
+                    const _Hint(
+                        'Snappy reacts instantly; Silky glides and floats down slowly.'),
+                    const SizedBox(height: 6),
+                    _Switch(
+                      title: 'Smooth bars',
+                      subtitle: 'Blend neighbouring bars into a softer shape.',
+                      value: s.smoothBars,
+                      onChanged: n.setSmoothBars,
+                    ),
+                    const SizedBox(height: 8),
                     const _Label('Quality'),
                     SegmentedButton<SpectrumQuality>(
                       showSelectedIcon: false,

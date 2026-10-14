@@ -32,6 +32,21 @@ enum SpectrumStyle {
   final String label;
 }
 
+/// How the bars move: rise speed, fall speed and peak behaviour.
+enum SpectrumMotion {
+  snappy('Snappy', 55, 12, 0.7, 0.4),
+  balanced('Balanced', 38, 7, 0.45, 0.6),
+  silky('Silky', 18, 3.2, 0.25, 0.8);
+
+  const SpectrumMotion(
+      this.label, this.attack, this.release, this.peakFall, this.peakHold);
+  final String label;
+  final double attack; // rise rate (1/s)
+  final double release; // fall rate (1/s)
+  final double peakFall; // peak dot fall speed (levels/s)
+  final double peakHold; // seconds a peak dot waits before falling
+}
+
 /// How many columns the spectrum shows (the analysis has 128).
 enum BarDensity {
   fine('Fine', 128),
@@ -52,6 +67,8 @@ class AppSettings {
     this.spectrumStyle = SpectrumStyle.bars,
     this.barDensity = BarDensity.fine,
     this.showPeaks = true,
+    this.motion = SpectrumMotion.balanced,
+    this.smoothBars = false,
     this.closeToTray = true,
     this.startWithWindows = false,
     this.autoUpdate = true,
@@ -63,6 +80,10 @@ class AppSettings {
   final SpectrumStyle spectrumStyle;
   final BarDensity barDensity;
   final bool showPeaks;
+  final SpectrumMotion motion;
+
+  /// Blend neighbouring bars into a softer shape.
+  final bool smoothBars;
 
   /// Close button hides to the tray (true) or quits (false).
   final bool closeToTray;
@@ -76,6 +97,8 @@ class AppSettings {
     SpectrumStyle? spectrumStyle,
     BarDensity? barDensity,
     bool? showPeaks,
+    SpectrumMotion? motion,
+    bool? smoothBars,
     bool? closeToTray,
     bool? startWithWindows,
     bool? autoUpdate,
@@ -87,6 +110,8 @@ class AppSettings {
       spectrumStyle: spectrumStyle ?? this.spectrumStyle,
       barDensity: barDensity ?? this.barDensity,
       showPeaks: showPeaks ?? this.showPeaks,
+      motion: motion ?? this.motion,
+      smoothBars: smoothBars ?? this.smoothBars,
       closeToTray: closeToTray ?? this.closeToTray,
       startWithWindows: startWithWindows ?? this.startWithWindows,
       autoUpdate: autoUpdate ?? this.autoUpdate,
@@ -108,6 +133,8 @@ class SettingsNotifier extends Notifier<AppSettings> {
   static const _kStyle = 'pureeq.spectrumStyle';
   static const _kDensity = 'pureeq.barDensity';
   static const _kPeaks = 'pureeq.showPeaks';
+  static const _kMotion = 'pureeq.spectrumMotion';
+  static const _kSmoothBars = 'pureeq.smoothBars';
   static const _kCloseToTray = 'pureeq.closeToTray';
   static const _kAutoUpdate = 'pureeq.autoUpdate';
 
@@ -135,6 +162,8 @@ class SettingsNotifier extends Notifier<AppSettings> {
       spectrumStyle: pick(SpectrumStyle.values, _kStyle, SpectrumStyle.bars),
       barDensity: pick(BarDensity.values, _kDensity, BarDensity.fine),
       showPeaks: p.getBool(_kPeaks) ?? true,
+      motion: pick(SpectrumMotion.values, _kMotion, SpectrumMotion.balanced),
+      smoothBars: p.getBool(_kSmoothBars) ?? false,
       closeToTray: p.getBool(_kCloseToTray) ?? true,
       autoUpdate: p.getBool(_kAutoUpdate) ?? true,
     );
@@ -170,6 +199,16 @@ class SettingsNotifier extends Notifier<AppSettings> {
     ref.read(sharedPreferencesProvider).setBool(_kPeaks, v);
   }
 
+  void setMotion(SpectrumMotion v) {
+    state = state.copyWith(motion: v);
+    ref.read(sharedPreferencesProvider).setString(_kMotion, v.name);
+  }
+
+  void setSmoothBars(bool v) {
+    state = state.copyWith(smoothBars: v);
+    ref.read(sharedPreferencesProvider).setBool(_kSmoothBars, v);
+  }
+
   void setCloseToTray(bool v) {
     state = state.copyWith(closeToTray: v);
     ref.read(sharedPreferencesProvider).setBool(_kCloseToTray, v);
@@ -196,6 +235,8 @@ class SettingsNotifier extends Notifier<AppSettings> {
       _kStyle,
       _kDensity,
       _kPeaks,
+      _kMotion,
+      _kSmoothBars,
       _kCloseToTray,
       _kAutoUpdate
     ]) {
