@@ -85,7 +85,7 @@ The manifest address is set at build time with `--dart-define=PUREEQ_UPDATE_URL=
 | Master volume | Reads and sets the real OS volume and mute, and follows changes made with the media keys. |
 | Tray | A tray icon (Windows) or menu bar icon (macOS) with Show, Equalizer on/off and Quit. Closing the window hides SK EQ to the tray, where it keeps running. |
 | Window | Frameless window that fits your screen. Windows 11–style caption buttons on Windows; native traffic lights on macOS. |
-| Real sound | On Windows, changes the actual sound of every app (headphones, speakers) through Equalizer APO, with a **Live / Preview only** status in the title bar. See [Real sound](#real-sound-windows). |
+| Real sound | Changes the actual sound of every app (headphones, speakers), with a **Live / Preview only** status in the title bar. Windows uses Equalizer APO ([details](#real-sound-windows)); macOS 14.2+ uses a Core Audio tap ([details](#real-sound-macos)). |
 | Music buttons | ⏮ Previous, ⏯ Play/Pause, ⏭ Next and ⏹ Stop control whatever app is playing (Spotify, browser, VLC…) by sending the keyboard media keys. ⏯ shows Pause while sound is playing. Windows only for now. |
 | Settings | Gear button: Dark / Light / System theme, 6 accent colors, spectrum style (Bars / Wave / Mirror / LED), bar width, peak dots, spectrum quality (Smooth / Balanced / Battery saver), start with Windows, close-to-tray or quit, version and update checks, sound status, reset. |
 | Updates | Checks automatically and from **⋯ → Check for updates**. A message at the top offers the new version, and **Update now** installs it and restarts SK EQ. See [Updates](#updates). |
@@ -120,9 +120,9 @@ lib/
 ## Important: what is real and what is simulated
 
 - **Master volume and mute are real.** They control the system output device.
-- **The spectrum shows the real sound on Windows.** SK EQ listens to what is playing on the default output device (WASAPI loopback) and draws 128 bars about 30 times a second. With nothing playing, the bars stay at zero. On macOS the spectrum is a simulated animation.
+- **The spectrum shows the real sound.** On Windows, SK EQ listens to what is playing on the default output device (WASAPI loopback). On macOS 14.2+ with real sound on, it analyzes the sound it plays. It draws 128 bars about 60 times a second, and with nothing playing the bars stay at zero. Otherwise the spectrum is a simulated animation.
 - **On Windows the EQ changes the real sound through [Equalizer APO](https://sourceforge.net/projects/equalizerapo/)**, a free, system-wide audio driver. See [Real sound](#real-sound-windows).
-- **On macOS the EQ is a preview only.** Processing system audio on macOS needs a virtual audio device, which is not built yet.
+- **On macOS 14.2 and later the EQ changes the real sound** through a Core Audio process tap. See [Real sound (macOS)](#real-sound-macos). On older macOS versions it is a preview only.
 
 ## Real sound (Windows)
 
@@ -132,3 +132,16 @@ Flutter apps can't insert a filter into Windows' audio path, so SK EQ drives **E
 - **Accuracy and headroom:** the curve is sent as 31 points at ⅓-octave steps (20 Hz – 20 kHz), so what you hear matches what you see. A negative preamp equal to the largest boost prevents clipping.
 - **Other front-ends (e.g. Peace):** if another app already controls Equalizer APO, SK EQ asks before taking over. Taking over comments out that app's `Include:` line; it doesn't delete it. **Give control back** restores it.
 - **Bypass:** EQ OFF and A/B "B" write a flat file, so you hear the original sound immediately.
+
+## Real sound (macOS)
+
+macOS 14.2 (Sonoma) added *process taps*, so SK EQ needs no driver on a Mac. The engine is in `macos/Runner/SystemAudioEQ.swift`:
+
+1. A global **tap** captures the sound of every app except SK EQ itself, and mutes the original while SK EQ reads it.
+2. A private **aggregate device** joins the tap with the current output device (speakers, headphones, AirPods). One audio callback reads the tapped sound, runs it through the EQ, and plays it.
+3. When the output device or its sample rate changes, the engine starts again on the new device. When SK EQ quits, macOS removes the tap and apps sound normal again.
+
+- **Filters:** `lib/models/eq_filter.dart` turns the drawn curve into 31 biquad filters (a low shelf, ⅓-octave peaking filters and a high shelf). Their gains are solved by least squares for the device's sample rate, so the response stays within 0.75 dB of the curve from 20 Hz to 20 kHz (`test/eq_filter_test.dart`). A negative preamp equal to the largest boost prevents clipping.
+- **Permission:** the first time, macOS asks to let SK EQ record system audio. If it is denied, the status pill shows *Permission needed*. Turn on SK EQ under **System Settings → Privacy & Security → Screen & System Audio Recording**.
+- **On/off:** click the status pill and choose **Turn off real sound** to let apps play directly again.
+- **Bypass:** EQ OFF and A/B "B" send no filters, so you hear the original sound.
