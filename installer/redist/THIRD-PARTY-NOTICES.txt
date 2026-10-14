@@ -1,0 +1,21 @@
+SK EQ - Third-party software
+=============================
+
+Equalizer APO 1.4.2 (bundled installer: EqualizerAPO-x64-1.4.2.exe)
+-------------------------------------------------------------------
+Equalizer APO is a free, open-source system-wide equalizer for Windows by
+Jonas Thedering. SK EQ uses it to change the real sound of the computer.
+
+- License: GNU General Public License, version 2 (see
+  EqualizerAPO-LICENSE-GPL-2.0.txt).
+- Project and source code: https://sourceforge.net/projects/equalizerapo/
+- The installer is included unmodified (SHA-256:
+  7403BE7427BBE1936A40DDED082829B6E217FC4F5990FEE5CBA501F0AE055AFA).
+
+SK EQ is a separate program: it does not contain Equalizer APO code and only
+writes Equalizer APO configuration files (sk-eq.txt / config.txt).
+
+Written offer for the source code: for at least three years from the date
+you received this installer, the complete corresponding source code of the
+bundled Equalizer APO version is available on request via the SK EQ project
+page: https://github.com/SK2601S/PureEQ/issues
