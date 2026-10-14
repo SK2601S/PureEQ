@@ -22,6 +22,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>SK EQ runs the sound of your apps through the equalizer, so you hear your EQ settings everywhere.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>SK EQ runs the sound of your apps through the equalizer. It does not record your microphone.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>$(PRODUCT_COPYRIGHT)</string>
 	<key>NSMainNibFile</key>

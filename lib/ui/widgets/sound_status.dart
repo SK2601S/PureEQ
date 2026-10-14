@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -31,6 +33,11 @@ class SoundStatusChip extends ConsumerWidget {
           'Sound error',
           AppColors.danger,
           Icons.error_outline_rounded
+        ),
+      SoundStatus.needsPermission => (
+          'Permission needed',
+          AppColors.bypass,
+          Icons.lock_outline_rounded
         ),
       _ => ('Preview only', AppColors.bypass, Icons.volume_off_rounded),
     };
@@ -103,9 +110,31 @@ class _SoundDialog extends ConsumerWidget {
         children.add(Text('Checking your audio setup…', style: muted));
       case SoundStatus.unsupported:
         children.add(Text(
-          'On this system SK EQ shows the equalizer but cannot change the system sound yet.',
+          Platform.isMacOS
+              ? 'Changing the real sound needs macOS 14.2 (Sonoma) or later. On this Mac the equalizer is a preview.'
+              : 'On this system SK EQ shows the equalizer but cannot change the system sound yet.',
           style: muted,
         ));
+      case SoundStatus.needsPermission:
+        children.add(Text(
+          'To change the real sound, SK EQ needs permission to process the sound of your apps.',
+          style: muted,
+        ));
+        step('1. Open System Settings → Privacy & Security → '
+            'Screen & System Audio Recording.');
+        step('2. Turn on SK EQ (under System Audio Recording Only, if shown).');
+        step('3. Come back and click Check again.');
+        actions.add(FilledButton(
+            onPressed: n.openPrivacySettings,
+            child: const Text('Open System Settings')));
+      case SoundStatus.off:
+        children.add(Text(
+          'Real sound is turned off. Your apps play normally and the equalizer is a preview.',
+          style: muted,
+        ));
+        actions.add(FilledButton(
+            onPressed: () => n.setMacRealSound(true),
+            child: const Text('Turn on')));
       case SoundStatus.notInstalled:
         children.add(Text(
           'To change the real sound, SK EQ uses Equalizer APO — a free, open-source audio driver for Windows.',
@@ -135,7 +164,10 @@ class _SoundDialog extends ConsumerWidget {
       case SoundStatus.notOnDevice:
       case SoundStatus.error:
         if (s.status == SoundStatus.error) {
-          children.add(Text("Couldn't update Equalizer APO: ${s.error}",
+          children.add(Text(
+              Platform.isMacOS
+                  ? "Couldn't start the sound engine: ${s.error}"
+                  : "Couldn't update Equalizer APO: ${s.error}",
               style: const TextStyle(color: AppColors.danger)));
         } else if (s.status == SoundStatus.notOnDevice) {
           children.add(Text(
@@ -183,6 +215,12 @@ class _SoundDialog extends ConsumerWidget {
           actions.add(OutlinedButton(
             onPressed: n.openDeviceSelector,
             child: const Text('Choose devices'),
+          ));
+        }
+        if (Platform.isMacOS && s.status == SoundStatus.live) {
+          actions.add(TextButton(
+            onPressed: () => n.setMacRealSound(false),
+            child: const Text('Turn off real sound'),
           ));
         }
         if (s.switchedOffApps.isNotEmpty) {

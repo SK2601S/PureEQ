@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -201,8 +203,12 @@ class _SettingsDialog extends ConsumerWidget {
                       subtitle: switch (sound.status) {
                         SoundStatus.live =>
                           'Live on ${sound.liveDevices.map((d) => d.name).join(', ')}',
-                        SoundStatus.unsupported =>
-                          'Preview only on this system',
+                        SoundStatus.unsupported => Platform.isMacOS
+                            ? 'Needs macOS 14.2 or later'
+                            : 'Preview only on this system',
+                        SoundStatus.needsPermission =>
+                          'Needs permission — open for details',
+                        SoundStatus.off => 'Turned off',
                         SoundStatus.notInstalled =>
                           'Needs Equalizer APO (free)',
                         SoundStatus.otherInControl =>

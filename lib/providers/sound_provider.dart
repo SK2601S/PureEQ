@@ -5,10 +5,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../models/eq_filter.dart';
 import '../services/apo_service.dart';
+import '../services/mac_audio_service.dart';
 import 'eq_provider.dart';
 
 final apoServiceProvider = Provider<ApoService>((ref) => ApoService());
+final macAudioServiceProvider =
+    Provider<MacAudioService>((ref) => MacAudioService());
 
 /// Whether (and where) SK EQ changes the real system sound.
 final soundProvider =
@@ -17,8 +21,14 @@ final soundProvider =
 enum SoundStatus {
   checking,
 
-  /// Not Windows: no system-wide processing yet (macOS needs a virtual device).
+  /// No system-wide processing on this system (macOS older than 14.2).
   unsupported,
+
+  /// macOS: SK EQ may not record system audio (Privacy & Security).
+  needsPermission,
+
+  /// macOS: the user turned real sound off.
+  off,
 
   /// Equalizer APO is not installed.
   notInstalled,
@@ -94,8 +104,10 @@ class SoundNotifier extends Notifier<SoundState> {
     return const SoundState();
   }
 
-  /// (Re)detects Equalizer APO, devices and who is in control.
+  /// (Re)detects Equalizer APO, devices and who is in control; on macOS
+  /// (re)starts the audio engine.
   Future<void> refresh() async {
+    if (Platform.isMacOS) return _refreshMac();
     if (!Platform.isWindows) {
       state = const SoundState(status: SoundStatus.unsupported);
       return;
@@ -161,21 +173,68 @@ class SoundNotifier extends Notifier<SoundState> {
       launchUrl(Uri.parse('https://sourceforge.net/projects/equalizerapo/'),
           mode: LaunchMode.externalApplication);
 
+  // --- macOS -----------------------------------------------------------------
+
+  /// "Real sound" switch on macOS (persisted).
+  static const _macOffKey = 'skeq.macRealSoundOff';
+
+  MacAudioService get _mac => ref.read(macAudioServiceProvider);
+
+  /// Sample rate of the running macOS engine; filters are designed for it.
+  double? _macSampleRate;
+
+  Future<void> _refreshMac() async {
+    _mac.onState = _onMacState;
+    try {
+      final prefs = ref.read(sharedPreferencesProvider);
+      _onMacState(prefs.getBool(_macOffKey) ?? false
+          ? await _mac.stop()
+          : await _mac.start());
+    } catch (e) {
+      state = SoundState(status: SoundStatus.error, error: '$e');
+    }
+  }
+
+  /// Turns real sound on or off on macOS.
+  Future<void> setMacRealSound(bool on) async {
+    await ref.read(sharedPreferencesProvider).setBool(_macOffKey, !on);
+    await _refreshMac();
+  }
+
+  Future<bool> openPrivacySettings() => _mac.openPrivacySettings();
+
+  void _onMacState(Map<String, Object?> s) {
+    final rate = s['sampleRate'];
+    _macSampleRate = rate is num ? rate.toDouble() : null;
+    state = switch (s['status']) {
+      'live' => SoundState(status: SoundStatus.live, devices: [
+          AudioDevice(name: '${s['device'] ?? 'Output'}', apoEnabled: true)
+        ]),
+      'denied' => const SoundState(status: SoundStatus.needsPermission),
+      'unsupported' => const SoundState(status: SoundStatus.unsupported),
+      'off' => const SoundState(status: SoundStatus.off),
+      _ => SoundState(
+          status: SoundStatus.error, error: '${s['error'] ?? 'unknown'}'),
+    };
+    if (state.status == SoundStatus.live) _writeNow();
+  }
+
   // ---------------------------------------------------------------------------
 
-  /// Throttled: at most one file write per 80 ms while dragging, always
-  /// followed by a final write with the latest values.
+  /// Throttled: at most one update per 80 ms (Equalizer APO file) or 30 ms
+  /// (macOS engine) while dragging, always followed by a final update with
+  /// the latest values.
   void _scheduleWrite() {
-    if (_configDir == null || !state.inControl) return;
+    if (!state.inControl) return;
     if (_writeTimer?.isActive ?? false) return;
-    final wait = const Duration(milliseconds: 80) -
-        DateTime.now().difference(_lastWrite);
+    final interval = Duration(milliseconds: Platform.isMacOS ? 30 : 80);
+    final wait = interval - DateTime.now().difference(_lastWrite);
     _writeTimer = Timer(wait.isNegative ? Duration.zero : wait, _writeNow);
   }
 
   Future<void> _writeNow() async {
     final dir = _configDir;
-    if (dir == null) return;
+    if (dir == null && !Platform.isMacOS) return;
     if (_writing) {
       _pendingWrite = true;
       return;
@@ -184,12 +243,22 @@ class SoundNotifier extends Notifier<SoundState> {
     _lastWrite = DateTime.now();
     final eq = ref.read(eqProvider);
     try {
+      if (Platform.isMacOS) {
+        final rate = _macSampleRate;
+        if (rate != null) {
+          await _mac.setFilters(
+              EqFilterDesign.forSampleRate(rate)
+                  .design(eq.effectiveGains, processing: eq.isProcessing),
+              rate);
+        }
+        return;
+      }
       // Re-assert control in case another app rewrote config.txt.
-      await _apo.connect(dir);
+      await _apo.connect(dir!);
       await _apo.writeCurve(dir, eq.effectiveGains,
           processing: eq.isProcessing);
     } catch (e) {
-      debugPrint('SK EQ: could not write Equalizer APO config: $e');
+      debugPrint('SK EQ: could not update the sound: $e');
       state = SoundState(
           status: SoundStatus.error, devices: state.devices, error: '$e');
     } finally {

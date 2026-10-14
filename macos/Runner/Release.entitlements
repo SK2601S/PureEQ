@@ -4,6 +4,9 @@
 <dict>
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
+	<!-- Real sound: reading the system-audio tap (see SystemAudioEQ.swift). -->
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
 	<!-- Outgoing HTTPS for update checks / downloads. -->
 	<key>com.apple.security.network.client</key>
 	<true/>

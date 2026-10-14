@@ -75,9 +75,10 @@ class _SpectrumVisualizerState extends ConsumerState<SpectrumVisualizer> {
   int? _frameCallbackId;
   Duration? _lastFrame;
 
-  /// Real-time spectrum of what is playing (Windows only; see
-  /// windows/runner/audio_capture.cpp). Cancelled while paused, which also
-  /// stops the native capture.
+  /// Real-time spectrum of what is playing (Windows: see
+  /// windows/runner/audio_capture.cpp; macOS 14.2+ while real sound is on:
+  /// macos/Runner/SystemAudioEQ.swift). Cancelled while paused, which also
+  /// stops the native analysis.
   static const _liveChannel = EventChannel('skeq/spectrum');
   StreamSubscription<dynamic>? _liveSub;
 
@@ -95,7 +96,7 @@ class _SpectrumVisualizerState extends ConsumerState<SpectrumVisualizer> {
   }
 
   void _syncLiveInput() {
-    if (!Platform.isWindows) return;
+    if (!Platform.isWindows && !Platform.isMacOS) return;
     if (_paused) {
       _liveSub?.cancel();
       _liveSub = null;
