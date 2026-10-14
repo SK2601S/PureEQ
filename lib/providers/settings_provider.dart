@@ -21,12 +21,37 @@ enum SpectrumQuality {
   final Duration idleDelay;
 }
 
+/// How the spectrum is drawn.
+enum SpectrumStyle {
+  bars('Bars'),
+  wave('Wave'),
+  mirror('Mirror'),
+  led('LED');
+
+  const SpectrumStyle(this.label);
+  final String label;
+}
+
+/// How many columns the spectrum shows (the analysis has 128).
+enum BarDensity {
+  fine('Fine', 128),
+  medium('Medium', 64),
+  wide('Wide', 32);
+
+  const BarDensity(this.label, this.columns);
+  final String label;
+  final int columns;
+}
+
 @immutable
 class AppSettings {
   const AppSettings({
     this.theme = ThemeChoice.dark,
     this.accent = AccentColor.cyan,
     this.spectrumQuality = SpectrumQuality.balanced,
+    this.spectrumStyle = SpectrumStyle.bars,
+    this.barDensity = BarDensity.fine,
+    this.showPeaks = true,
     this.closeToTray = true,
     this.startWithWindows = false,
     this.autoUpdate = true,
@@ -35,6 +60,9 @@ class AppSettings {
   final ThemeChoice theme;
   final AccentColor accent;
   final SpectrumQuality spectrumQuality;
+  final SpectrumStyle spectrumStyle;
+  final BarDensity barDensity;
+  final bool showPeaks;
 
   /// Close button hides to the tray (true) or quits (false).
   final bool closeToTray;
@@ -45,6 +73,9 @@ class AppSettings {
     ThemeChoice? theme,
     AccentColor? accent,
     SpectrumQuality? spectrumQuality,
+    SpectrumStyle? spectrumStyle,
+    BarDensity? barDensity,
+    bool? showPeaks,
     bool? closeToTray,
     bool? startWithWindows,
     bool? autoUpdate,
@@ -53,6 +84,9 @@ class AppSettings {
       theme: theme ?? this.theme,
       accent: accent ?? this.accent,
       spectrumQuality: spectrumQuality ?? this.spectrumQuality,
+      spectrumStyle: spectrumStyle ?? this.spectrumStyle,
+      barDensity: barDensity ?? this.barDensity,
+      showPeaks: showPeaks ?? this.showPeaks,
       closeToTray: closeToTray ?? this.closeToTray,
       startWithWindows: startWithWindows ?? this.startWithWindows,
       autoUpdate: autoUpdate ?? this.autoUpdate,
@@ -71,6 +105,9 @@ class SettingsNotifier extends Notifier<AppSettings> {
   static const _kTheme = 'pureeq.ui.theme';
   static const _kAccent = 'pureeq.ui.accent';
   static const _kQuality = 'pureeq.spectrumQuality';
+  static const _kStyle = 'pureeq.spectrumStyle';
+  static const _kDensity = 'pureeq.barDensity';
+  static const _kPeaks = 'pureeq.showPeaks';
   static const _kCloseToTray = 'pureeq.closeToTray';
   static const _kAutoUpdate = 'pureeq.autoUpdate';
 
@@ -95,6 +132,9 @@ class SettingsNotifier extends Notifier<AppSettings> {
       accent: pick(AccentColor.values, _kAccent, AccentColor.cyan),
       spectrumQuality:
           pick(SpectrumQuality.values, _kQuality, SpectrumQuality.balanced),
+      spectrumStyle: pick(SpectrumStyle.values, _kStyle, SpectrumStyle.bars),
+      barDensity: pick(BarDensity.values, _kDensity, BarDensity.fine),
+      showPeaks: p.getBool(_kPeaks) ?? true,
       closeToTray: p.getBool(_kCloseToTray) ?? true,
       autoUpdate: p.getBool(_kAutoUpdate) ?? true,
     );
@@ -113,6 +153,21 @@ class SettingsNotifier extends Notifier<AppSettings> {
   void setSpectrumQuality(SpectrumQuality v) {
     state = state.copyWith(spectrumQuality: v);
     ref.read(sharedPreferencesProvider).setString(_kQuality, v.name);
+  }
+
+  void setSpectrumStyle(SpectrumStyle v) {
+    state = state.copyWith(spectrumStyle: v);
+    ref.read(sharedPreferencesProvider).setString(_kStyle, v.name);
+  }
+
+  void setBarDensity(BarDensity v) {
+    state = state.copyWith(barDensity: v);
+    ref.read(sharedPreferencesProvider).setString(_kDensity, v.name);
+  }
+
+  void setShowPeaks(bool v) {
+    state = state.copyWith(showPeaks: v);
+    ref.read(sharedPreferencesProvider).setBool(_kPeaks, v);
   }
 
   void setCloseToTray(bool v) {
@@ -138,6 +193,9 @@ class SettingsNotifier extends Notifier<AppSettings> {
       _kTheme,
       _kAccent,
       _kQuality,
+      _kStyle,
+      _kDensity,
+      _kPeaks,
       _kCloseToTray,
       _kAutoUpdate
     ]) {

@@ -199,6 +199,8 @@ class _SpectrumVisualizerState extends ConsumerState<SpectrumVisualizer> {
     final volume = ref.watch(volumeProvider);
     _idleDelay =
         ref.watch(settingsProvider.select((s) => s.spectrumQuality)).idleDelay;
+    final look = ref.watch(settingsProvider
+        .select((s) => (s.spectrumStyle, s.barDensity.columns, s.showPeaks)));
     final hidden = !ref.watch(windowVisibleProvider);
     if (hidden != _windowHidden) {
       _windowHidden = hidden;
@@ -225,7 +227,13 @@ class _SpectrumVisualizerState extends ConsumerState<SpectrumVisualizer> {
       children: [
         RepaintBoundary(
           child: CustomPaint(
-            painter: _SpectrumPainter(_sim, showOutput: widget.showOutput),
+            painter: _SpectrumPainter(
+              _sim,
+              showOutput: widget.showOutput,
+              style: look.$1,
+              columns: look.$2,
+              showPeaks: look.$3,
+            ),
           ),
         ),
         if (widget.showCurve) EqCurveOverlay(sim: _sim),
@@ -503,16 +511,42 @@ class SpectrumSimulation extends ChangeNotifier {
 }
 
 class _SpectrumPainter extends CustomPainter {
-  _SpectrumPainter(this.sim, {required this.showOutput}) : super(repaint: sim);
+  _SpectrumPainter(
+    this.sim, {
+    required this.showOutput,
+    required this.style,
+    required this.columns,
+    required this.showPeaks,
+  }) : super(repaint: sim);
 
   final SpectrumSimulation sim;
   final bool showOutput;
+
+  /// Look chosen in Settings → Spectrum.
+  final SpectrumStyle style;
+
+  /// Number of columns drawn (128 / 64 / 32); the 128 analysed bars are
+  /// merged by taking the loudest of each group.
+  final int columns;
+  final bool showPeaks;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
     _paintGrid(canvas, size);
-    if (showOutput) _paintBars(canvas, size);
+    if (!showOutput) return;
+    _group();
+    _preparePaints(size);
+    switch (style) {
+      case SpectrumStyle.bars:
+        _paintBars(canvas, size);
+      case SpectrumStyle.mirror:
+        _paintMirror(canvas, size);
+      case SpectrumStyle.led:
+        _paintLed(canvas, size);
+      case SpectrumStyle.wave:
+        _paintWave(canvas, size);
+    }
   }
 
   void _paintGrid(Canvas canvas, Size size) {
@@ -534,52 +568,47 @@ class _SpectrumPainter extends CustomPainter {
     }
   }
 
-  // --- Bar rendering -------------------------------------------------------
-  //
-  // The bars change every frame, so they are sent to the GPU as raw
-  // triangles (one draw call per layer) instead of as a Path. A path made of
-  // 128 rounded rects has to be re-tessellated on the CPU every frame, which
-  // kept a whole core busy on integrated graphics. Buffers are reused.
+  // --- Column levels -------------------------------------------------------
 
-  late final Float32List _barVerts = Float32List(sim.barCount * 12);
-  late final Float32List _haloVerts = Float32List(sim.barCount * 12);
-  late final List<Offset> _peakPoints = List.filled(sim.barCount, Offset.zero);
+  late final List<double> _level = List.filled(columns, 0.0);
+  late final List<double> _peak = List.filled(columns, 0.0);
 
-  Size? _paintSize;
-  late Paint _barPaint;
-  late Paint _haloPaint;
-
-  /// Gradients depend only on the size, so they're rebuilt only on resize.
-  void _preparePaints(Size size) {
-    if (_paintSize == size) return;
-    _paintSize = size;
-    final rect = Offset.zero & size;
-    // Bars: deep blue at the floor → cyan → bright tips.
-    _barPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.bottomCenter,
-        end: Alignment.topCenter,
-        colors: [
-          AppColors.accentDeep.withValues(alpha: 0.25),
-          AppColors.accent.withValues(alpha: 0.85),
-          AppColors.accentSoft,
-        ],
-        stops: [0, 0.6, 1],
-      ).createShader(rect);
-    // Halo: glow faked with a wider translucent copy of each bar (a blur
-    // filter would be far more expensive every frame).
-    _haloPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.bottomCenter,
-        end: Alignment.topCenter,
-        colors: [
-          AppColors.accent.withValues(alpha: 0.02),
-          AppColors.accent.withValues(alpha: 0.16),
-        ],
-      ).createShader(rect);
+  void _group() {
+    final g = math.max(1, sim.barCount ~/ columns);
+    for (var c = 0; c < columns; c++) {
+      var lv = 0.0, pk = 0.0;
+      for (var j = c * g; j < (c + 1) * g && j < sim.barCount; j++) {
+        lv = math.max(lv, sim.levels[j]);
+        pk = math.max(pk, sim.peaks[j]);
+      }
+      _level[c] = lv;
+      _peak[c] = pk;
+    }
   }
 
-  /// Writes bar [i] as two triangles into [v].
+  // --- GPU quads -----------------------------------------------------------
+  //
+  // Bars change every frame, so they are sent to the GPU as raw triangles
+  // (one draw call per layer) instead of as Paths: a path of many rounded
+  // rects is re-tessellated on the CPU every frame, which kept a whole core
+  // busy on integrated graphics. Buffers are reused between frames.
+
+  Float32List _main = Float32List(0);
+  Float32List _halo = Float32List(0);
+  int _mainCount = 0;
+  int _haloCount = 0;
+
+  static Float32List _fit(Float32List buf, int quads) =>
+      buf.length >= quads * 12 ? buf : Float32List(quads * 12);
+
+  void _begin(int maxQuads, {bool halo = true}) {
+    _main = _fit(_main, maxQuads);
+    if (halo) _halo = _fit(_halo, maxQuads);
+    _mainCount = 0;
+    _haloCount = 0;
+  }
+
+  /// Appends one rectangle (two triangles).
   static void _quad(
       Float32List v, int i, double l, double t, double r, double b) {
     final k = i * 12;
@@ -598,57 +627,230 @@ class _SpectrumPainter extends CustomPainter {
       ..[k + 11] = b;
   }
 
+  void _addMain(double l, double t, double r, double b) =>
+      _quad(_main, _mainCount++, l, t, r, b);
+  void _addHalo(double l, double t, double r, double b) =>
+      _quad(_halo, _haloCount++, l, t, r, b);
+
+  /// Without texture coordinates the shader is mapped by position, so the
+  /// gradients look exactly as they would on rectangles.
+  static void _draw(Canvas canvas, Float32List buf, int count, Paint paint) {
+    if (count == 0) return;
+    final vertices = ui.Vertices.raw(
+        ui.VertexMode.triangles, Float32List.sublistView(buf, 0, count * 12));
+    canvas.drawVertices(vertices, BlendMode.srcOver, paint);
+    vertices.dispose();
+  }
+
+  // --- Paints (gradients depend only on size and style) ---------------------
+
+  Size? _paintSize;
+  late Paint _barPaint;
+  late Paint _haloPaint;
+  late Paint _peakHaloPaint;
+  late Paint _peakPaint;
+
+  void _preparePaints(Size size) {
+    if (_paintSize == size) return;
+    _paintSize = size;
+    final rect = Offset.zero & size;
+    final mirror = style == SpectrumStyle.mirror;
+    // Deep at the floor (or centre line, for Mirror) → accent → bright tips.
+    _barPaint = Paint()
+      ..shader = LinearGradient(
+        begin: mirror ? Alignment.topCenter : Alignment.bottomCenter,
+        end: mirror ? Alignment.bottomCenter : Alignment.topCenter,
+        colors: mirror
+            ? [
+                AppColors.accentSoft,
+                AppColors.accent.withValues(alpha: 0.85),
+                AppColors.accentDeep.withValues(alpha: 0.35),
+                AppColors.accent.withValues(alpha: 0.85),
+                AppColors.accentSoft,
+              ]
+            : [
+                AppColors.accentDeep.withValues(alpha: 0.25),
+                AppColors.accent.withValues(alpha: 0.85),
+                AppColors.accentSoft,
+              ],
+        stops: mirror ? const [0, 0.3, 0.5, 0.7, 1] : const [0, 0.6, 1],
+      ).createShader(rect);
+    // Halo: glow faked with a wider translucent copy (a blur filter would be
+    // far more expensive every frame).
+    _haloPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.bottomCenter,
+        end: Alignment.topCenter,
+        colors: [
+          AppColors.accent.withValues(alpha: mirror ? 0.12 : 0.02),
+          AppColors.accent.withValues(alpha: 0.16)
+        ],
+      ).createShader(rect);
+    _peakHaloPaint = Paint()
+      ..strokeCap = StrokeCap.round
+      ..color = AppColors.accent.withValues(alpha: 0.22);
+    _peakPaint = Paint()
+      ..strokeCap = StrokeCap.round
+      ..color = AppColors.accentSoft;
+  }
+
+  void _paintPeaks(Canvas canvas, List<Offset> points, double r) {
+    if (!showPeaks || points.isEmpty) return;
+    canvas
+      ..drawPoints(ui.PointMode.points, points,
+          _peakHaloPaint..strokeWidth = (r + 2.5) * 2)
+      ..drawPoints(
+          ui.PointMode.points, points, _peakPaint..strokeWidth = r * 2);
+  }
+
+  // --- Styles ----------------------------------------------------------------
+
+  /// Classic bars rising from the floor, with peak-hold dots.
   void _paintBars(Canvas canvas, Size size) {
-    _preparePaints(size);
-    final n = sim.barCount;
-    final colW = size.width / n;
-    final barW = math.max(1.5, colW * 0.52);
+    final colW = size.width / columns;
+    final barW = math.max(1.5, colW * 0.56);
     final haloW = math.min(colW * 0.95, barW + 4);
-    final dotR = (barW * 0.6).clamp(1.4, 2.6);
+    final dotR = (barW * 0.35).clamp(1.4, 3.0);
     final maxH = size.height - 8;
     final floor = size.height;
-
-    for (var j = 0; j < n; j++) {
-      final cx = (j + 0.5) * colW;
-      final top = floor - math.max(sim.levels[j] * maxH, 2.0);
-      _quad(_barVerts, j, cx - barW / 2, top, cx + barW / 2, floor);
-      _quad(_haloVerts, j, cx - haloW / 2, top - 2, cx + haloW / 2, floor);
-      // Peak-hold dot sits just above the highest recent level.
-      _peakPoints[j] = Offset(cx, floor - sim.peaks[j] * maxH - dotR - 3);
+    final peaks = <Offset>[];
+    _begin(columns);
+    for (var c = 0; c < columns; c++) {
+      final cx = (c + 0.5) * colW;
+      final top = floor - math.max(_level[c] * maxH, 2.0);
+      _addMain(cx - barW / 2, top, cx + barW / 2, floor);
+      _addHalo(cx - haloW / 2, top - 2, cx + haloW / 2, floor);
+      peaks.add(Offset(cx, floor - _peak[c] * maxH - dotR - 3));
     }
+    _draw(canvas, _halo, _haloCount, _haloPaint);
+    _draw(canvas, _main, _mainCount, _barPaint);
+    _paintPeaks(canvas, peaks, dotR);
+  }
 
-    // Without texture coordinates the shader is mapped by position, so the
-    // gradients look exactly as they would on rectangles.
-    for (final (verts, paint) in [
-      (_haloVerts, _haloPaint),
-      (_barVerts, _barPaint)
-    ]) {
-      final vertices = ui.Vertices.raw(ui.VertexMode.triangles, verts);
-      canvas.drawVertices(vertices, BlendMode.srcOver, paint);
-      vertices.dispose();
+  /// Bars growing up and down from the centre line.
+  void _paintMirror(Canvas canvas, Size size) {
+    final colW = size.width / columns;
+    final barW = math.max(1.5, colW * 0.56);
+    final haloW = math.min(colW * 0.95, barW + 4);
+    final dotR = (barW * 0.35).clamp(1.4, 3.0);
+    final mid = size.height / 2;
+    final maxH = mid - 6;
+    final peaks = <Offset>[];
+    _begin(columns);
+    for (var c = 0; c < columns; c++) {
+      final cx = (c + 0.5) * colW;
+      final h = math.max(_level[c] * maxH, 1.0);
+      _addMain(cx - barW / 2, mid - h, cx + barW / 2, mid + h);
+      _addHalo(cx - haloW / 2, mid - h - 2, cx + haloW / 2, mid + h + 2);
+      final p = _peak[c] * maxH + dotR + 3;
+      peaks
+        ..add(Offset(cx, mid - p))
+        ..add(Offset(cx, mid + p));
     }
+    _draw(canvas, _halo, _haloCount, _haloPaint);
+    _draw(canvas, _main, _mainCount, _barPaint);
+    _paintPeaks(canvas, peaks, dotR);
+  }
 
-    // Peak-hold dots (round points in a single call) with a soft halo.
+  /// Segmented "hi-fi" blocks; the peak lights a single block.
+  void _paintLed(Canvas canvas, Size size) {
+    final colW = size.width / columns;
+    final barW = math.max(2.0, colW * 0.7);
+    final maxH = size.height - 4;
+    final floor = size.height;
+    final step = columns >= 128 ? 5.0 : 7.0; // block + gap
+    final block = step - 2;
+    final maxBlocks = (maxH / step).floor();
+    _begin(columns * (maxBlocks + 1), halo: false);
+    final peakBlocks = <Offset>[];
+    for (var c = 0; c < columns; c++) {
+      final x = (c + 0.5) * colW - barW / 2;
+      final lit = (_level[c] * maxBlocks).floor();
+      for (var k = 0; k < lit; k++) {
+        final b = floor - k * step;
+        _addMain(x, b - block, x + barW, b);
+      }
+      if (showPeaks) {
+        final pk = (_peak[c] * maxBlocks).floor();
+        if (pk > lit) peakBlocks.add(Offset(x, floor - pk * step));
+      }
+    }
+    _draw(canvas, _main, _mainCount, _barPaint);
+    for (final o in peakBlocks) {
+      canvas.drawRect(
+          Rect.fromLTWH(o.dx, o.dy - block, barW, block), _peakPaint);
+    }
+  }
+
+  /// One smooth glowing line with a filled area underneath.
+  void _paintWave(Canvas canvas, Size size) {
+    final colW = size.width / columns;
+    final maxH = size.height - 10;
+    final floor = size.height;
+    final pts = [
+      Offset(0, floor - _level[0] * maxH),
+      for (var c = 0; c < columns; c++)
+        Offset((c + 0.5) * colW, floor - _level[c] * maxH),
+      Offset(size.width, floor - _level[columns - 1] * maxH),
+    ];
+    // Quadratic curves through the midpoints give a smooth line.
+    final line = Path()..moveTo(pts.first.dx, pts.first.dy);
+    for (var i = 1; i < pts.length - 1; i++) {
+      final mid = Offset(
+          (pts[i].dx + pts[i + 1].dx) / 2, (pts[i].dy + pts[i + 1].dy) / 2);
+      line.quadraticBezierTo(pts[i].dx, pts[i].dy, mid.dx, mid.dy);
+    }
+    line.lineTo(pts.last.dx, pts.last.dy);
+    final area = Path.from(line)
+      ..lineTo(size.width, floor)
+      ..lineTo(0, floor)
+      ..close();
+    final rect = Offset.zero & size;
     canvas
-      ..drawPoints(
-        ui.PointMode.points,
-        _peakPoints,
+      ..drawPath(
+        area,
         Paint()
-          ..strokeWidth = (dotR + 2.5) * 2
-          ..strokeCap = StrokeCap.round
-          ..color = AppColors.accent.withValues(alpha: 0.22),
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppColors.accent.withValues(alpha: 0.45),
+              AppColors.accentDeep.withValues(alpha: 0.04)
+            ],
+          ).createShader(rect),
       )
-      ..drawPoints(
-        ui.PointMode.points,
-        _peakPoints,
+      ..drawPath(
+        line,
         Paint()
-          ..strokeWidth = dotR * 2
-          ..strokeCap = StrokeCap.round
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 7
+          ..strokeJoin = StrokeJoin.round
+          ..color = AppColors.accent.withValues(alpha: 0.18),
+      )
+      ..drawPath(
+        line,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.2
+          ..strokeJoin = StrokeJoin.round
           ..color = AppColors.accentSoft,
       );
+    if (showPeaks) {
+      _paintPeaks(
+          canvas,
+          [
+            for (var c = 0; c < columns; c++)
+              Offset((c + 0.5) * colW, floor - _peak[c] * maxH - 4),
+          ],
+          columns >= 128 ? 1.4 : 2.2);
+    }
   }
 
   @override
   bool shouldRepaint(_SpectrumPainter old) =>
-      old.sim != sim || old.showOutput != showOutput;
+      old.sim != sim ||
+      old.showOutput != showOutput ||
+      old.style != style ||
+      old.columns != columns ||
+      old.showPeaks != showPeaks;
 }

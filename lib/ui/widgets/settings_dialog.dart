@@ -99,6 +99,51 @@ class _SettingsDialog extends ConsumerWidget {
 
                     // --- Spectrum ---------------------------------------------
                     const _Section('Spectrum'),
+                    const _Label('Style'),
+                    SegmentedButton<SpectrumStyle>(
+                      showSelectedIcon: false,
+                      segments: const [
+                        ButtonSegment(
+                            value: SpectrumStyle.bars,
+                            label: Text('Bars'),
+                            icon: Icon(Icons.bar_chart_rounded)),
+                        ButtonSegment(
+                            value: SpectrumStyle.wave,
+                            label: Text('Wave'),
+                            icon: Icon(Icons.show_chart_rounded)),
+                        ButtonSegment(
+                            value: SpectrumStyle.mirror,
+                            label: Text('Mirror'),
+                            icon: Icon(Icons.graphic_eq_rounded)),
+                        ButtonSegment(
+                            value: SpectrumStyle.led,
+                            label: Text('LED'),
+                            icon: Icon(Icons.view_week_rounded)),
+                      ],
+                      selected: {s.spectrumStyle},
+                      onSelectionChanged: (v) => n.setSpectrumStyle(v.first),
+                    ),
+                    const SizedBox(height: 14),
+                    const _Label('Bar width'),
+                    SegmentedButton<BarDensity>(
+                      showSelectedIcon: false,
+                      segments: [
+                        for (final d in BarDensity.values)
+                          ButtonSegment(value: d, label: Text(d.label)),
+                      ],
+                      selected: {s.barDensity},
+                      onSelectionChanged: (v) => n.setBarDensity(v.first),
+                    ),
+                    const SizedBox(height: 6),
+                    _Switch(
+                      title: 'Peak dots',
+                      subtitle:
+                          'Small markers that hold the loudest level for a moment.',
+                      value: s.showPeaks,
+                      onChanged: n.setShowPeaks,
+                    ),
+                    const SizedBox(height: 8),
+                    const _Label('Quality'),
                     SegmentedButton<SpectrumQuality>(
                       showSelectedIcon: false,
                       segments: [
