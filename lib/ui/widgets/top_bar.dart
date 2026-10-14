@@ -9,6 +9,7 @@ import '../../theme/app_theme.dart';
 import 'app_logo.dart';
 import 'app_menu.dart';
 import 'preset_selector.dart';
+import 'settings_dialog.dart';
 import 'sound_status.dart';
 import 'window_buttons.dart';
 
@@ -40,7 +41,10 @@ class TopBar extends StatelessWidget {
             const SizedBox(width: 10),
             const Text(
               'SK EQ',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, letterSpacing: 0.2),
+              style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2),
             ),
             const Spacer(),
             const SoundStatusChip(),
@@ -49,12 +53,22 @@ class TopBar extends StatelessWidget {
             const SizedBox(width: 12),
             const PresetSelector(),
             const SizedBox(width: 6),
+            Builder(
+              builder: (context) => IconButton(
+                tooltip: 'Settings',
+                onPressed: () => showSettingsDialog(context),
+                icon: Icon(Icons.settings_rounded,
+                    size: 20, color: AppColors.textSecondary),
+              ),
+            ),
             const AppMenuButton(),
             if (_isMacOS)
               const SizedBox(width: 20)
             else ...[
               const SizedBox(width: 16),
-              SizedBox(height: height, child: WindowButtons(closeTooltip: closeTooltip)),
+              SizedBox(
+                  height: height,
+                  child: WindowButtons(closeTooltip: closeTooltip)),
             ],
           ],
         ),
@@ -76,19 +90,28 @@ class _EqToggle extends ConsumerWidget {
       height: 36,
       padding: const EdgeInsets.only(left: 12, right: 4),
       decoration: BoxDecoration(
-        color: enabled ? AppColors.accent.withValues(alpha: 0.1) : AppColors.surfaceHigh,
+        color: enabled
+            ? AppColors.accent.withValues(alpha: 0.1)
+            : AppColors.surfaceHigh,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: enabled ? AppColors.accent.withValues(alpha: 0.45) : AppColors.border,
+          color: enabled
+              ? AppColors.accent.withValues(alpha: 0.45)
+              : AppColors.border,
         ),
         boxShadow: enabled
-            ? [BoxShadow(color: AppColors.accent.withValues(alpha: 0.18), blurRadius: 14)]
-            : const [],
+            ? [
+                BoxShadow(
+                    color: AppColors.accent.withValues(alpha: 0.18),
+                    blurRadius: 14)
+              ]
+            : [],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('EQ', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+          const Text('EQ',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
           const SizedBox(width: 6),
           SizedBox(
             width: 28,

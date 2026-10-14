@@ -49,7 +49,8 @@ class VolumeService {
   Future<void> listen(ValueChanged<double> onChanged) async {
     try {
       await Future<Object?>.sync(
-        () => FlutterVolumeController.addListener(onChanged, emitOnStart: false),
+        () =>
+            FlutterVolumeController.addListener(onChanged, emitOnStart: false),
       );
     } catch (e) {
       debugPrint('SK EQ: volume listener unavailable: $e');

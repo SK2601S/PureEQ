@@ -13,14 +13,16 @@ library;
 /// set up yet).
 const String kUpdateManifestUrl = String.fromEnvironment(
   'PUREEQ_UPDATE_URL',
-  defaultValue: 'https://github.com/SK2601S/PureEQ/releases/latest/download/latest.json',
+  defaultValue:
+      'https://github.com/SK2601S/PureEQ/releases/latest/download/latest.json',
 );
 
 /// Test builds only: accept an available update automatically, exactly as if
 /// "Update now" were clicked (used to test the full update flow end to end
 /// without simulating mouse input). Always false in normal builds, so the
 /// code behind it is compiled out.
-const bool kTestAutoAcceptUpdate = bool.fromEnvironment('PUREEQ_TEST_AUTO_UPDATE');
+const bool kTestAutoAcceptUpdate =
+    bool.fromEnvironment('PUREEQ_TEST_AUTO_UPDATE');
 
 /// How often a running SK EQ re-checks for updates (besides at startup).
 const Duration kUpdateCheckInterval = Duration(hours: 6);

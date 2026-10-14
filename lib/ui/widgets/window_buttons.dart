@@ -54,7 +54,9 @@ class _WindowButtonsState extends State<WindowButtons> with WindowListener {
         _CaptionButton(
           glyph: _maximized ? _Glyph.restore : _Glyph.maximize,
           tooltip: _maximized ? 'Restore Down' : 'Maximize',
-          onPressed: () => _maximized ? windowManager.unmaximize() : windowManager.maximize(),
+          onPressed: () => _maximized
+              ? windowManager.unmaximize()
+              : windowManager.maximize(),
         ),
         _CaptionButton(
           glyph: _Glyph.close,
@@ -100,10 +102,16 @@ class _CaptionButtonState extends State<_CaptionButton> {
               ? AppColors.windowsClose
               : Colors.transparent;
     } else {
-      background = Colors.white.withValues(alpha: _pressed ? 0.04 : _hover ? 0.07 : 0);
+      background = AppColors.overlay.withValues(
+          alpha: _pressed
+              ? 0.04
+              : _hover
+                  ? 0.07
+                  : 0);
     }
-    final glyphColor =
-        widget.isClose && _hover ? Colors.white : AppColors.textPrimary.withValues(alpha: 0.9);
+    final glyphColor = widget.isClose && _hover
+        ? Colors.white
+        : AppColors.textPrimary.withValues(alpha: 0.9);
 
     return Tooltip(
       message: widget.tooltip,
@@ -120,7 +128,8 @@ class _CaptionButtonState extends State<_CaptionButton> {
             duration: const Duration(milliseconds: 90),
             width: 46,
             color: background,
-            child: CustomPaint(painter: _GlyphPainter(widget.glyph, glyphColor)),
+            child:
+                CustomPaint(painter: _GlyphPainter(widget.glyph, glyphColor)),
           ),
         ),
       ),
@@ -142,7 +151,8 @@ class _GlyphPainter extends CustomPainter {
       ..strokeWidth = 1
       ..style = PaintingStyle.stroke
       ..isAntiAlias = true;
-    final c = Offset((size.width / 2).roundToDouble() + 0.5, (size.height / 2).roundToDouble() + 0.5);
+    final c = Offset((size.width / 2).roundToDouble() + 0.5,
+        (size.height / 2).roundToDouble() + 0.5);
     const s = 5.0; // half of the 10 px glyph box
 
     switch (glyph) {
@@ -150,7 +160,8 @@ class _GlyphPainter extends CustomPainter {
         canvas.drawLine(c + const Offset(-s, 0), c + const Offset(s, 0), p);
       case _Glyph.maximize:
         canvas.drawRRect(
-          RRect.fromRectAndRadius(Rect.fromCenter(center: c, width: s * 2, height: s * 2),
+          RRect.fromRectAndRadius(
+              Rect.fromCenter(center: c, width: s * 2, height: s * 2),
               const Radius.circular(1.5)),
           p,
         );
@@ -166,7 +177,8 @@ class _GlyphPainter extends CustomPainter {
         final back = Path()
           ..moveTo(c.dx - s + 2, c.dy - s)
           ..lineTo(c.dx + s - 1.5, c.dy - s)
-          ..arcToPoint(Offset(c.dx + s, c.dy - s + 1.5), radius: const Radius.circular(1.5))
+          ..arcToPoint(Offset(c.dx + s, c.dy - s + 1.5),
+              radius: const Radius.circular(1.5))
           ..lineTo(c.dx + s, c.dy + s - 2);
         canvas.drawPath(back, p);
       case _Glyph.close:
@@ -177,5 +189,6 @@ class _GlyphPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_GlyphPainter old) => old.glyph != glyph || old.color != color;
+  bool shouldRepaint(_GlyphPainter old) =>
+      old.glyph != glyph || old.color != color;
 }

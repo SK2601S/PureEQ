@@ -7,7 +7,8 @@ import '../../theme/app_theme.dart';
 /// Manual "Check for updates" (app menu, About dialog, tray): runs the check
 /// and reports the outcome in a snackbar. An available update additionally
 /// shows the banner.
-Future<void> checkForUpdatesManually(BuildContext context, WidgetRef ref) async {
+Future<void> checkForUpdatesManually(
+    BuildContext context, WidgetRef ref) async {
   final messenger = ScaffoldMessenger.of(context);
   messenger
     ..hideCurrentSnackBar()
@@ -23,11 +24,13 @@ Future<void> checkForUpdatesManually(BuildContext context, WidgetRef ref) async 
       "You're up to date — SK EQ ${state.current ?? ''} is the latest version.",
     UpdateCheckResult.available => 'SK EQ ${state.info?.version} is available.',
     UpdateCheckResult.failed => state.error ?? "Couldn't check for updates.",
-    UpdateCheckResult.notConfigured => 'Updates are not set up for this build yet.',
+    UpdateCheckResult.notConfigured =>
+      'Updates are not set up for this build yet.',
   };
   messenger
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(message), duration: const Duration(seconds: 4)));
+    ..showSnackBar(
+        SnackBar(content: Text(message), duration: const Duration(seconds: 4)));
 }
 
 /// Slim banner under the title bar: announces a new version, then shows
@@ -42,8 +45,13 @@ class UpdateBanner extends ConsumerWidget {
     final info = state.info;
     final version = info?.version.toString() ?? '';
 
-    final (IconData icon, Color color, String title, String? subtitle, List<Widget> actions) =
-        switch (state.status) {
+    final (
+      IconData icon,
+      Color color,
+      String title,
+      String? subtitle,
+      List<Widget> actions
+    ) = switch (state.status) {
       UpdateStatus.downloading => (
           Icons.downloading_rounded,
           AppColors.accent,
@@ -52,7 +60,9 @@ class UpdateBanner extends ConsumerWidget {
               : 'Downloading SK EQ $version…  ${(state.progress! * 100).round()}%',
           null,
           [
-            TextButton(onPressed: notifier.cancelDownload, child: const Text('Cancel')),
+            TextButton(
+                onPressed: notifier.cancelDownload,
+                child: const Text('Cancel')),
           ],
         ),
       UpdateStatus.installing => (
@@ -60,13 +70,13 @@ class UpdateBanner extends ConsumerWidget {
           AppColors.accent,
           'Installing SK EQ $version…',
           'SK EQ will close and reopen by itself in a moment.',
-          const <Widget>[
-            SizedBox(
+          <Widget>[
+            const SizedBox(
               width: 18,
               height: 18,
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
           ],
         ),
       UpdateStatus.openedInstaller => (
@@ -117,7 +127,8 @@ class UpdateBanner extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
       child: Container(
         decoration: BoxDecoration(
-          color: Color.alphaBlend(color.withValues(alpha: 0.08), AppColors.surface),
+          color: Color.alphaBlend(
+              color.withValues(alpha: 0.08), AppColors.surface),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: color.withValues(alpha: 0.45)),
         ),
@@ -146,14 +157,16 @@ class UpdateBanner extends ConsumerWidget {
                       children: [
                         Text(
                           title,
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                          style: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w600),
                         ),
                         if (subtitle != null)
                           Text(
                             subtitle,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                            style: TextStyle(
+                                color: AppColors.textSecondary, fontSize: 12),
                           ),
                       ],
                     ),
@@ -186,22 +199,24 @@ class UpdateBanner extends ConsumerWidget {
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: AppColors.border),
+          side: BorderSide(color: AppColors.border),
         ),
-        title: Text("What's new in SK EQ ${info.version}", style: const TextStyle(fontSize: 18)),
+        title: Text("What's new in SK EQ ${info.version}",
+            style: const TextStyle(fontSize: 18)),
         content: SizedBox(
           width: 420,
           child: SingleChildScrollView(
             child: Text(
               info.notes ?? 'See the full release notes online.',
-              style: const TextStyle(color: AppColors.textSecondary, height: 1.45),
+              style: TextStyle(color: AppColors.textSecondary, height: 1.45),
             ),
           ),
         ),
         actions: [
           if (info.notesUrl != null)
             TextButton(
-              onPressed: () => ref.read(updateProvider.notifier).openReleaseNotes(),
+              onPressed: () =>
+                  ref.read(updateProvider.notifier).openReleaseNotes(),
               child: const Text('Open release page'),
             ),
           TextButton(

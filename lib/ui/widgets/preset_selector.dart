@@ -25,13 +25,14 @@ class PresetSelector extends ConsumerWidget {
       constraints: const BoxConstraints(minWidth: 230),
       onSelected: notifier.selectPreset,
       itemBuilder: (menuContext) => [
-        _presetItem(Preset.customName, selected: eq.presetName == Preset.customName),
+        _presetItem(Preset.customName,
+            selected: eq.presetName == Preset.customName),
         const PopupMenuDivider(),
         for (final p in kBuiltInPresets)
           _presetItem(p.name, selected: p.name == eq.presetName),
         if (eq.userPresets.isNotEmpty) ...[
           const PopupMenuDivider(),
-          const PopupMenuItem<String>(
+          PopupMenuItem<String>(
             enabled: false,
             height: 28,
             child: Text(
@@ -72,7 +73,7 @@ class PresetSelector extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.tune_rounded, size: 16, color: AppColors.accent),
+            Icon(Icons.tune_rounded, size: 16, color: AppColors.accent),
             const SizedBox(width: 8),
             ConstrainedBox(
               constraints: const BoxConstraints(minWidth: 96, maxWidth: 160),
@@ -83,7 +84,8 @@ class PresetSelector extends ConsumerWidget {
                   eq.presetName,
                   key: ValueKey(eq.presetName),
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w500),
                 ),
               ),
             ),
@@ -100,7 +102,9 @@ class PresetSelector extends ConsumerWidget {
                     color: AppColors.accent,
                     shape: BoxShape.circle,
                     boxShadow: [
-                      BoxShadow(color: AppColors.accent.withValues(alpha: 0.7), blurRadius: 6),
+                      BoxShadow(
+                          color: AppColors.accent.withValues(alpha: 0.7),
+                          blurRadius: 6),
                     ],
                   ),
                 ),
@@ -127,7 +131,7 @@ class PresetSelector extends ConsumerWidget {
           SizedBox(
             width: 24,
             child: selected
-                ? const Icon(Icons.check_rounded, size: 16, color: AppColors.accent)
+                ? Icon(Icons.check_rounded, size: 16, color: AppColors.accent)
                 : null,
           ),
           Expanded(

@@ -32,7 +32,8 @@ class TrayService {
 
       if (Platform.isMacOS) {
         // Monochrome template image: macOS tints it for light/dark menu bars.
-        icon.icon = tray.ImageAsset.fromAsset('assets/tray/tray_icon_template.png');
+        icon.icon =
+            tray.ImageAsset.fromAsset('assets/tray/tray_icon_template.png');
         icon.isIconTemplate = true;
       } else {
         icon.icon = tray.ImageAsset.fromAsset('assets/tray/tray_icon.ico');
@@ -45,7 +46,8 @@ class TrayService {
         onEqChanged(_eqItem?.state != tray.MenuItemState.checked);
       });
       setEqEnabled(eqEnabled);
-      final updates = _item('Check for Updates…', tray.MenuItemType.normal, onCheckUpdates);
+      final updates =
+          _item('Check for Updates…', tray.MenuItemType.normal, onCheckUpdates);
       final quit = _item('Quit SK EQ', tray.MenuItemType.normal, onQuit);
 
       menu
@@ -92,7 +94,8 @@ class TrayService {
     _eqItem = null;
   }
 
-  static tray.MenuItem? _item(String label, tray.MenuItemType type, VoidCallback onClick) {
+  static tray.MenuItem? _item(
+      String label, tray.MenuItemType type, VoidCallback onClick) {
     final item = tray.MenuItem.createWithLabelAndType(label, type);
     item?.addListener((event) {
       if (event is tray.MenuItemClickedEvent) onClick();

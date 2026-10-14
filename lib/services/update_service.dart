@@ -17,9 +17,11 @@ class AppVersion implements Comparable<AppVersion> {
   final int patch;
 
   static AppVersion? tryParse(String text) {
-    final m = RegExp(r'^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?').firstMatch(text.trim());
+    final m =
+        RegExp(r'^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?').firstMatch(text.trim());
     if (m == null) return null;
-    return AppVersion(int.parse(m[1]!), int.parse(m[2] ?? '0'), int.parse(m[3] ?? '0'));
+    return AppVersion(
+        int.parse(m[1]!), int.parse(m[2] ?? '0'), int.parse(m[3] ?? '0'));
   }
 
   bool operator >(AppVersion other) => compareTo(other) > 0;
@@ -32,7 +34,8 @@ class AppVersion implements Comparable<AppVersion> {
   }
 
   @override
-  bool operator ==(Object other) => other is AppVersion && compareTo(other) == 0;
+  bool operator ==(Object other) =>
+      other is AppVersion && compareTo(other) == 0;
 
   @override
   int get hashCode => Object.hash(major, minor, patch);
@@ -71,12 +74,16 @@ class UpdateInfo {
   final Uri? notesUrl;
 
   /// Reads the entry for [platform] ("windows" / "macos").
-  factory UpdateInfo.fromManifest(Map<String, dynamic> json, {required String platform}) {
+  factory UpdateInfo.fromManifest(Map<String, dynamic> json,
+      {required String platform}) {
     final version = AppVersion.tryParse(json['version'] as String? ?? '');
-    if (version == null) throw const UpdateException('The update information is invalid.');
+    if (version == null) {
+      throw const UpdateException('The update information is invalid.');
+    }
     final entry = json[platform];
     if (entry is! Map || entry['url'] is! String) {
-      throw const UpdateException('No update is published for this platform yet.');
+      throw const UpdateException(
+          'No update is published for this platform yet.');
     }
     final notes = (json['notes'] as String?)?.trim();
     final notesUrl = json['notesUrl'] as String?;
@@ -127,8 +134,10 @@ class UpdateService {
   /// against a local server).
   static Uri checkedUri(String url) {
     final uri = Uri.tryParse(url);
-    final local = uri != null && (uri.host == 'localhost' || uri.host == '127.0.0.1');
-    if (uri == null || !(uri.scheme == 'https' || (uri.scheme == 'http' && local))) {
+    final local =
+        uri != null && (uri.host == 'localhost' || uri.host == '127.0.0.1');
+    if (uri == null ||
+        !(uri.scheme == 'https' || (uri.scheme == 'http' && local))) {
       throw UpdateException('Refusing insecure update address: $url');
     }
     return uri;
@@ -143,27 +152,35 @@ class UpdateService {
   Future<UpdateInfo> fetchLatest() async {
     final url = _manifestUrl;
     final platform = platformKey;
-    if (url == null) throw const UpdateException('Updates are not set up for this build.');
-    if (platform == null) throw const UpdateException('Updates are not supported on this system.');
+    if (url == null) {
+      throw const UpdateException('Updates are not set up for this build.');
+    }
+    if (platform == null) {
+      throw const UpdateException('Updates are not supported on this system.');
+    }
 
     final http.Response res;
     try {
-      res = await _client
-          .get(url, headers: {'Cache-Control': 'no-cache'})
-          .timeout(const Duration(seconds: 15));
+      res = await _client.get(url, headers: {
+        'Cache-Control': 'no-cache'
+      }).timeout(const Duration(seconds: 15));
     } on TimeoutException {
-      throw const UpdateException('The update server did not respond. Check your internet connection.');
+      throw const UpdateException(
+          'The update server did not respond. Check your internet connection.');
     } on Exception {
-      throw const UpdateException("Couldn't reach the update server. Check your internet connection.");
+      throw const UpdateException(
+          "Couldn't reach the update server. Check your internet connection.");
     }
     if (res.statusCode == 404) {
       throw const UpdateException('No release has been published yet.');
     }
     if (res.statusCode != 200) {
-      throw UpdateException('The update server returned an error (${res.statusCode}).');
+      throw UpdateException(
+          'The update server returned an error (${res.statusCode}).');
     }
     try {
-      final json = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      final json =
+          jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
       return UpdateInfo.fromManifest(json, platform: platform);
     } on UpdateException {
       rethrow;
@@ -179,7 +196,8 @@ class UpdateService {
     void Function(double? progress)? onProgress,
     bool Function()? isCancelled,
   }) async {
-    final dir = Directory('${Directory.systemTemp.path}${Platform.pathSeparator}sk-eq-update');
+    final dir = Directory(
+        '${Directory.systemTemp.path}${Platform.pathSeparator}sk-eq-update');
     await dir.create(recursive: true);
     final name = info.downloadUrl.pathSegments.isEmpty
         ? 'SK-EQ-update'
@@ -190,7 +208,8 @@ class UpdateService {
     try {
       res = await _client.send(http.Request('GET', info.downloadUrl));
     } on Exception {
-      throw const UpdateException("Couldn't download the update. Check your internet connection.");
+      throw const UpdateException(
+          "Couldn't download the update. Check your internet connection.");
     }
     if (res.statusCode != 200) {
       throw UpdateException('Download failed (${res.statusCode}).');
@@ -213,7 +232,8 @@ class UpdateService {
       await out.close();
       await file.delete().catchError((_) => file);
       if (e is UpdateCancelled) rethrow;
-      throw const UpdateException('The download was interrupted. Please try again.');
+      throw const UpdateException(
+          'The download was interrupted. Please try again.');
     }
     await out.close();
     hasher.close();
@@ -221,7 +241,8 @@ class UpdateService {
     final expected = info.sha256;
     if (expected != null && digest.value.toString() != expected) {
       await file.delete().catchError((_) => file);
-      throw const UpdateException('The downloaded file is damaged (checksum mismatch). Please try again.');
+      throw const UpdateException(
+          'The downloaded file is damaged (checksum mismatch). Please try again.');
     }
     return file;
   }
@@ -247,8 +268,11 @@ class UpdateService {
     if (Platform.isWindows) {
       // Match the existing install mode so the update replaces it in place
       // (an all-users install in Program Files needs admin → UAC prompt).
-      final programFiles = (Platform.environment['ProgramFiles'] ?? r'C:\Program Files').toLowerCase();
-      final allUsers = Platform.resolvedExecutable.toLowerCase().startsWith(programFiles);
+      final programFiles =
+          (Platform.environment['ProgramFiles'] ?? r'C:\Program Files')
+              .toLowerCase();
+      final allUsers =
+          Platform.resolvedExecutable.toLowerCase().startsWith(programFiles);
       await Process.start(
         file.path,
         [
@@ -271,7 +295,8 @@ class UpdateService {
   }
 
   /// Opens a link (e.g. release notes) in the default browser.
-  Future<void> openLink(Uri url) => launchUrl(url, mode: LaunchMode.externalApplication);
+  Future<void> openLink(Uri url) =>
+      launchUrl(url, mode: LaunchMode.externalApplication);
 
   void dispose() => _client.close();
 }

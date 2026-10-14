@@ -18,7 +18,7 @@ class BottomControls extends ConsumerWidget {
     return Container(
       height: 76,
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(top: BorderSide(color: AppColors.border)),
       ),
       child: Row(
@@ -70,12 +70,16 @@ class AbCompareButton extends ConsumerWidget {
                     BoxShadow(
                         color: color.withValues(alpha: 0.45), blurRadius: 12)
                   ]
-                : const [],
+                : [],
           ),
           child: Text(
             text,
             style: TextStyle(
-              color: active ? Colors.black : AppColors.textSecondary,
+              color: active
+                  ? (color == AppColors.bypass
+                      ? Colors.black
+                      : AppColors.onAccent)
+                  : AppColors.textSecondary,
               fontWeight: FontWeight.w800,
               fontSize: 14,
             ),
@@ -150,14 +154,15 @@ class _SavePresetButton extends ConsumerWidget {
                       color: AppColors.accent.withValues(alpha: 0.4),
                       blurRadius: 18)
                 ]
-              : const [],
+              : [],
         ),
         child: FilledButton.icon(
           onPressed: () => saveCurrentAsPreset(context, ref),
           style: FilledButton.styleFrom(
             backgroundColor: dirty ? AppColors.accent : AppColors.surfaceHigh,
-            foregroundColor: dirty ? Colors.black : AppColors.textSecondary,
-            side: dirty ? null : const BorderSide(color: AppColors.border),
+            foregroundColor:
+                dirty ? AppColors.onAccent : AppColors.textSecondary,
+            side: dirty ? null : BorderSide(color: AppColors.border),
           ),
           icon: Icon(
               dirty
@@ -175,8 +180,8 @@ class _SavePresetButton extends ConsumerWidget {
                         margin: const EdgeInsets.only(left: 8),
                         width: 7,
                         height: 7,
-                        decoration: const BoxDecoration(
-                          color: Colors.black,
+                        decoration: BoxDecoration(
+                          color: AppColors.onAccent,
                           shape: BoxShape.circle,
                         ),
                       )
@@ -245,8 +250,7 @@ class _MasterVolume extends ConsumerWidget {
                         TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                 Text(
                   vol.available ? 'System output' : 'System volume unavailable',
-                  style:
-                      const TextStyle(color: AppColors.textMuted, fontSize: 11),
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 11),
                 ),
               ],
             ),
@@ -271,7 +275,7 @@ class _MasterVolume extends ConsumerWidget {
                 color: vol.muted ? AppColors.danger : AppColors.textSecondary,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                fontFeatures: const [FontFeature.tabularFigures()],
+                fontFeatures: [const FontFeature.tabularFigures()],
               ),
             ),
           ),

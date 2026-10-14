@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config.dart';
 import '../services/update_service.dart';
+import 'settings_provider.dart';
 
 final updateServiceProvider = Provider<UpdateService>((ref) {
   final service = UpdateService(manifestUrl: kUpdateManifestUrl);
@@ -13,7 +14,8 @@ final updateServiceProvider = Provider<UpdateService>((ref) {
   return service;
 });
 
-final updateProvider = NotifierProvider<UpdateNotifier, UpdateState>(UpdateNotifier.new);
+final updateProvider =
+    NotifierProvider<UpdateNotifier, UpdateState>(UpdateNotifier.new);
 
 enum UpdateStatus {
   idle,
@@ -107,10 +109,15 @@ class UpdateNotifier extends Notifier<UpdateState> {
   bool get isConfigured => _service.isConfigured;
 
   /// Silent check shortly after startup, then every [kUpdateCheckInterval].
+  /// Skipped while "Check for updates automatically" is off in Settings.
   void startAutomaticChecks() {
     if (!_service.isConfigured) return;
-    Timer(kUpdateStartupDelay, check);
-    _periodic ??= Timer.periodic(kUpdateCheckInterval, (_) => check());
+    void autoCheck() {
+      if (ref.read(settingsProvider).autoUpdate) check();
+    }
+
+    Timer(kUpdateStartupDelay, autoCheck);
+    _periodic ??= Timer.periodic(kUpdateCheckInterval, (_) => autoCheck());
   }
 
   /// Checks for a newer version. Automatic checks stay silent on failure;
@@ -140,7 +147,10 @@ class UpdateNotifier extends Notifier<UpdateState> {
         if (kTestAutoAcceptUpdate) unawaited(downloadAndInstall());
         return UpdateCheckResult.available;
       }
-      state = state.copyWith(status: UpdateStatus.upToDate, current: current, bannerVisible: false);
+      state = state.copyWith(
+          status: UpdateStatus.upToDate,
+          current: current,
+          bannerVisible: false);
       return UpdateCheckResult.upToDate;
     } on UpdateException catch (e) {
       // Keep a previously found update visible; otherwise report the error.
@@ -166,7 +176,8 @@ class UpdateNotifier extends Notifier<UpdateState> {
     try {
       final file = await _service.download(
         info,
-        onProgress: (p) => state = state.copyWith(progress: p, clearProgress: p == null),
+        onProgress: (p) =>
+            state = state.copyWith(progress: p, clearProgress: p == null),
         isCancelled: () => _cancelRequested,
       );
       await _service.install(file);
@@ -180,9 +191,11 @@ class UpdateNotifier extends Notifier<UpdateState> {
         state = state.copyWith(status: UpdateStatus.openedInstaller);
       }
     } on UpdateCancelled {
-      state = state.copyWith(status: UpdateStatus.available, clearProgress: true);
+      state =
+          state.copyWith(status: UpdateStatus.available, clearProgress: true);
     } on UpdateException catch (e) {
-      state = state.copyWith(status: UpdateStatus.error, error: e.message, clearProgress: true);
+      state = state.copyWith(
+          status: UpdateStatus.error, error: e.message, clearProgress: true);
     } catch (e) {
       state = state.copyWith(
         status: UpdateStatus.error,

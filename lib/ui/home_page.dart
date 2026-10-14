@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../providers/eq_provider.dart';
+import '../providers/settings_provider.dart';
 import '../providers/update_provider.dart';
 import '../providers/window_provider.dart';
 import '../services/tray_service.dart';
@@ -55,7 +56,12 @@ class _HomePageState extends ConsumerState<HomePage> with WindowListener {
       onQuit: _quit,
     );
     // Only hide-to-tray if there is a tray to come back from.
-    if (trayReady) windowManager.setPreventClose(true);
+    if (trayReady) {
+      windowManager.setPreventClose(true);
+    } else if (!ref.read(windowVisibleProvider)) {
+      // Started with --minimized but no tray to restore from: show the window.
+      _showWindow();
+    }
 
     // Updates: quiet check shortly after startup and every few hours. The
     // installer needs SK EQ closed, so give the updater a way to quit.
@@ -71,12 +77,15 @@ class _HomePageState extends ConsumerState<HomePage> with WindowListener {
     super.dispose();
   }
 
-  /// Close button / Alt+F4 / ⌘W while hide-to-tray is active.
+  /// Close button / Alt+F4 / ⌘W: hide to the tray, or quit (Settings).
   @override
   void onWindowClose() async {
-    if (await windowManager.isPreventClose()) {
+    if (!await windowManager.isPreventClose()) return;
+    if (ref.read(settingsProvider).closeToTray) {
       _setVisible(false);
       await windowManager.hide();
+    } else {
+      await _quit();
     }
   }
 
@@ -115,10 +124,14 @@ class _HomePageState extends ConsumerState<HomePage> with WindowListener {
   @override
   Widget build(BuildContext context) {
     // Keep the tray menu's checkmark in sync with the EQ switch.
-    ref.listen(eqProvider.select((s) => s.enabled), (_, on) => _tray.setEqEnabled(on));
+    ref.listen(
+        eqProvider.select((s) => s.enabled), (_, on) => _tray.setEqEnabled(on));
 
     final notifier = ref.read(eqProvider.notifier);
-    final showUpdateBanner = ref.watch(updateProvider.select((s) => s.bannerVisible));
+    final showUpdateBanner =
+        ref.watch(updateProvider.select((s) => s.bannerVisible));
+    final closeToTray =
+        ref.watch(settingsProvider.select((s) => s.closeToTray));
 
     return CallbackShortcuts(
       bindings: {
@@ -133,35 +146,43 @@ class _HomePageState extends ConsumerState<HomePage> with WindowListener {
         autofocus: true,
         child: Scaffold(
           backgroundColor: AppColors.background,
-          body: Column(
-            children: [
-              TopBar(closeTooltip: _tray.isAvailable ? 'Close to tray' : 'Close'),
-              // New-version message: slides down under the title bar.
-              AnimatedSize(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOutCubic,
-                alignment: Alignment.topCenter,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: showUpdateBanner
-                      ? const UpdateBanner()
-                      : const SizedBox(width: double.infinity),
-                ),
-              ),
-              const Expanded(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(20, 2, 20, 16),
-                  child: Column(
-                    children: [
-                      Expanded(child: EqPanel()),
-                      SizedBox(height: 14),
-                      BassTrebleControls(),
-                    ],
+          // Keyed by the palette: a theme/accent change rebuilds the whole
+          // screen (const widgets and cached painters included).
+          body: KeyedSubtree(
+            key: ValueKey(AppColors.palette.id),
+            child: Column(
+              children: [
+                TopBar(
+                    closeTooltip: _tray.isAvailable && closeToTray
+                        ? 'Close to tray'
+                        : 'Close'),
+                // New-version message: slides down under the title bar.
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                  alignment: Alignment.topCenter,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: showUpdateBanner
+                        ? const UpdateBanner()
+                        : const SizedBox(width: double.infinity),
                   ),
                 ),
-              ),
-              const BottomControls(),
-            ],
+                const Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(20, 2, 20, 16),
+                    child: Column(
+                      children: [
+                        Expanded(child: EqPanel()),
+                        SizedBox(height: 14),
+                        BassTrebleControls(),
+                      ],
+                    ),
+                  ),
+                ),
+                const BottomControls(),
+              ],
+            ),
           ),
         ),
       ),

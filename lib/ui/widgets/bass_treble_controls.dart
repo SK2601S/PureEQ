@@ -94,14 +94,18 @@ class _ShelfControl extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                Text(label,
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 2),
-                Text(caption, style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                Text(caption,
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
               ],
             ),
           ),
           Expanded(
-            child: BipolarSlider(value: value, enabled: enabled, onChanged: onChanged),
+            child: BipolarSlider(
+                value: value, enabled: enabled, onChanged: onChanged),
           ),
           const SizedBox(width: 12),
           Tooltip(
@@ -117,9 +121,10 @@ class _ShelfControl extends StatelessWidget {
                     color: color,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    fontFeatures: const [FontFeature.tabularFigures()],
+                    fontFeatures: [const FontFeature.tabularFigures()],
                   ),
-                  child: Text('${formatGain(value)} dB', textAlign: TextAlign.right),
+                  child: Text('${formatGain(value)} dB',
+                      textAlign: TextAlign.right),
                 ),
               ),
             ),
@@ -181,18 +186,21 @@ class _BipolarSliderState extends State<BipolarSlider> {
           },
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTapDown: (d) => _set(_valueFromDx(d.localPosition.dx, c.maxWidth)),
+            onTapDown: (d) =>
+                _set(_valueFromDx(d.localPosition.dx, c.maxWidth)),
             onDoubleTap: () => _set(0),
             onHorizontalDragStart: (d) {
               setState(() => _dragging = true);
               _set(_valueFromDx(d.localPosition.dx, c.maxWidth));
             },
-            onHorizontalDragUpdate: (d) => _set(_valueFromDx(d.localPosition.dx, c.maxWidth)),
+            onHorizontalDragUpdate: (d) =>
+                _set(_valueFromDx(d.localPosition.dx, c.maxWidth)),
             onHorizontalDragEnd: (_) => setState(() => _dragging = false),
             onHorizontalDragCancel: () => setState(() => _dragging = false),
             child: TweenAnimationBuilder<double>(
               tween: Tween(end: widget.value),
-              duration: _dragging ? Duration.zero : const Duration(milliseconds: 380),
+              duration:
+                  _dragging ? Duration.zero : const Duration(milliseconds: 380),
               curve: Curves.easeOutCubic,
               builder: (context, v, _) => CustomPaint(
                 size: Size(c.maxWidth, 32),
@@ -211,7 +219,8 @@ class _BipolarSliderState extends State<BipolarSlider> {
 }
 
 class _BipolarPainter extends CustomPainter {
-  _BipolarPainter({required this.value, required this.enabled, required this.highlighted});
+  _BipolarPainter(
+      {required this.value, required this.enabled, required this.highlighted});
 
   final double value;
   final bool enabled;
@@ -221,7 +230,8 @@ class _BipolarPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     const pad = _BipolarSliderState._pad;
     final cy = size.height / 2;
-    double xFor(double db) => pad + (db - kMinGain) / (kMaxGain - kMinGain) * (size.width - pad * 2);
+    double xFor(double db) =>
+        pad + (db - kMinGain) / (kMaxGain - kMinGain) * (size.width - pad * 2);
     final color = AppColors.forGain(value, enabled: enabled);
 
     // Track + centre tick.
@@ -237,7 +247,7 @@ class _BipolarPainter extends CustomPainter {
       Offset(x0, cy - 7),
       Offset(x0, cy + 7),
       Paint()
-        ..color = Colors.white.withValues(alpha: 0.2)
+        ..color = AppColors.overlay.withValues(alpha: 0.2)
         ..strokeWidth = 1,
     );
 
@@ -251,8 +261,10 @@ class _BipolarPainter extends CustomPainter {
       if (enabled) {
         // Blur-free glow (cheap to redraw every frame).
         canvas
-          ..drawRRect(fill.inflate(4), Paint()..color = color.withValues(alpha: 0.10))
-          ..drawRRect(fill.inflate(2), Paint()..color = color.withValues(alpha: 0.22));
+          ..drawRRect(
+              fill.inflate(4), Paint()..color = color.withValues(alpha: 0.10))
+          ..drawRRect(
+              fill.inflate(2), Paint()..color = color.withValues(alpha: 0.22));
       }
       canvas.drawRRect(fill, Paint()..color = color);
     }
@@ -262,13 +274,16 @@ class _BipolarPainter extends CustomPainter {
     if (enabled) {
       final a = highlighted ? 1.0 : 0.55;
       canvas
-        ..drawCircle(Offset(xv, cy), 14, Paint()..color = ring.withValues(alpha: 0.08 * a))
-        ..drawCircle(Offset(xv, cy), 10.5, Paint()..color = ring.withValues(alpha: 0.2 * a));
+        ..drawCircle(Offset(xv, cy), 14,
+            Paint()..color = ring.withValues(alpha: 0.08 * a))
+        ..drawCircle(Offset(xv, cy), 10.5,
+            Paint()..color = ring.withValues(alpha: 0.2 * a));
     }
     canvas.drawCircle(
       Offset(xv, cy),
       7,
-      Paint()..color = enabled ? const Color(0xFFEFFBFF) : const Color(0xFF8A8A90),
+      Paint()
+        ..color = enabled ? const Color(0xFFEFFBFF) : const Color(0xFF8A8A90),
     );
     canvas.drawCircle(
       Offset(xv, cy),
@@ -282,5 +297,7 @@ class _BipolarPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_BipolarPainter old) =>
-      old.value != value || old.enabled != enabled || old.highlighted != highlighted;
+      old.value != value ||
+      old.enabled != enabled ||
+      old.highlighted != highlighted;
 }

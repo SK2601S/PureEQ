@@ -26,17 +26,24 @@ class MediaControls extends ConsumerWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _MediaButton(icon: Icons.skip_previous_rounded, tooltip: 'Previous', onTap: media.previous),
+          _MediaButton(
+              icon: Icons.skip_previous_rounded,
+              tooltip: 'Previous',
+              onTap: media.previous),
           _MediaButton(
             icon: playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
             tooltip: playing ? 'Pause' : 'Play',
             onTap: media.playPause,
             primary: true,
           ),
-          _MediaButton(icon: Icons.skip_next_rounded, tooltip: 'Next', onTap: media.next),
+          _MediaButton(
+              icon: Icons.skip_next_rounded,
+              tooltip: 'Next',
+              onTap: media.next),
           // Native side pauses (not a real stop): many players end their
           // session on Stop, after which Play can no longer resume.
-          _MediaButton(icon: Icons.stop_rounded, tooltip: 'Stop', onTap: media.stop),
+          _MediaButton(
+              icon: Icons.stop_rounded, tooltip: 'Stop', onTap: media.stop),
         ],
       ),
     );

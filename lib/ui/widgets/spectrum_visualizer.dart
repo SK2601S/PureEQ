@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/eq_band.dart';
 import '../../providers/eq_provider.dart';
 import '../../providers/media_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../../providers/volume_provider.dart';
 import '../../providers/window_provider.dart';
 import '../../theme/app_theme.dart';
@@ -61,9 +62,10 @@ class _SpectrumVisualizerState extends ConsumerState<SpectrumVisualizer> {
   // moves: curve drags, preset transitions, A/B switches. Frames are still
   // requested through the scheduler, so they stay aligned to vsync.
 
-  /// Delay before requesting the next frame at the idle rate: the frame then
-  /// lands on the following vsync (≈ 33 ms at 60 Hz).
-  static const Duration _idleDelay = Duration(milliseconds: 22);
+  /// Delay before requesting the next frame at the idle rate (Settings →
+  /// Spectrum quality): the frame then lands on the following vsync, e.g.
+  /// 22 ms ≈ 30 fps at 60 Hz ("Balanced").
+  Duration _idleDelay = SpectrumQuality.balanced.idleDelay;
 
   /// While silent and settled (nothing playing, nothing moving), check for
   /// sound only a few times a second.
@@ -86,7 +88,8 @@ class _SpectrumVisualizerState extends ConsumerState<SpectrumVisualizer> {
   void _updatePlaying(bool hasSound) {
     final now = DateTime.now();
     if (hasSound) _lastSound = now;
-    final playing = now.difference(_lastSound) < const Duration(milliseconds: 1000);
+    final playing =
+        now.difference(_lastSound) < const Duration(milliseconds: 1000);
     final notifier = ref.read(audioPlayingProvider.notifier);
     if (notifier.state != playing) notifier.state = playing;
   }
@@ -126,7 +129,8 @@ class _SpectrumVisualizerState extends ConsumerState<SpectrumVisualizer> {
   void initState() {
     super.initState();
     _lifecycle = AppLifecycleListener(onStateChange: (s) {
-      _lifecycleHidden = s == AppLifecycleState.hidden || s == AppLifecycleState.paused;
+      _lifecycleHidden =
+          s == AppLifecycleState.hidden || s == AppLifecycleState.paused;
       _syncPacer();
     });
     _syncLiveInput();
@@ -134,14 +138,17 @@ class _SpectrumVisualizerState extends ConsumerState<SpectrumVisualizer> {
   }
 
   void _requestFrame() {
-    _frameCallbackId ??= SchedulerBinding.instance.scheduleFrameCallback(_onFrame);
+    _frameCallbackId ??=
+        SchedulerBinding.instance.scheduleFrameCallback(_onFrame);
   }
 
   void _onFrame(Duration timestamp) {
     _frameCallbackId = null;
     // Clamp dt so a stall (window drag, resume from pause) doesn't jump.
     final last = _lastFrame;
-    final dt = last == null ? 1 / 60 : ((timestamp - last).inMicroseconds / 1e6).clamp(0.0, 0.05);
+    final dt = last == null
+        ? 1 / 60
+        : ((timestamp - last).inMicroseconds / 1e6).clamp(0.0, 0.05);
     _lastFrame = timestamp;
     _sim.step(dt);
     _scheduleNext();
@@ -190,6 +197,8 @@ class _SpectrumVisualizerState extends ConsumerState<SpectrumVisualizer> {
   Widget build(BuildContext context) {
     final eq = ref.watch(eqProvider);
     final volume = ref.watch(volumeProvider);
+    _idleDelay =
+        ref.watch(settingsProvider.select((s) => s.spectrumQuality)).idleDelay;
     final hidden = !ref.watch(windowVisibleProvider);
     if (hidden != _windowHidden) {
       _windowHidden = hidden;
@@ -197,7 +206,8 @@ class _SpectrumVisualizerState extends ConsumerState<SpectrumVisualizer> {
     }
 
     // A/B switches must be heard (and seen) instantly; everything else eases.
-    final compareChanged = _lastCompare != null && _lastCompare != eq.compareBypass;
+    final compareChanged =
+        _lastCompare != null && _lastCompare != eq.compareBypass;
     _lastCompare = eq.compareBypass;
 
     _sim
@@ -228,12 +238,15 @@ class _SpectrumVisualizerState extends ConsumerState<SpectrumVisualizer> {
 /// (fast attack, slower release, peak-hold dots that wait, then fall).
 class SpectrumSimulation extends ChangeNotifier {
   SpectrumSimulation({required this.barCount})
-      : frequencies = List.generate(barCount, (j) => axisToFrequency((j + 0.5) / barCount)),
+      : frequencies = List.generate(
+            barCount, (j) => axisToFrequency((j + 0.5) / barCount)),
         levels = List.filled(barCount, 0.0),
         peaks = List.filled(barCount, 0.0),
         _peakHold = List.filled(barCount, 0.0),
-        _phaseA = List.generate(barCount, (_) => _rand.nextDouble() * math.pi * 2),
-        _phaseB = List.generate(barCount, (_) => _rand.nextDouble() * math.pi * 2);
+        _phaseA =
+            List.generate(barCount, (_) => _rand.nextDouble() * math.pi * 2),
+        _phaseB =
+            List.generate(barCount, (_) => _rand.nextDouble() * math.pi * 2);
 
   static final math.Random _rand = math.Random();
 
@@ -374,7 +387,9 @@ class SpectrumSimulation extends ChangeNotifier {
       if (next != curveGains[i]) curveMoved = true;
       curveGains[i] = next;
       final applied = _processing ? target : 0.0;
-      appliedGains[i] = dragging && _processing ? applied : _settle(appliedGains[i], applied, ease);
+      appliedGains[i] = dragging && _processing
+          ? applied
+          : _settle(appliedGains[i], applied, ease);
     }
     final mix = _settle(activeMix, _processing ? 1.0 : 0.0, ease);
     if (mix != activeMix) curveMoved = true;
@@ -390,11 +405,14 @@ class SpectrumSimulation extends ChangeNotifier {
     final hat = 0.25 + 0.75 * math.exp(-(_time % (beat / 2)) * 28);
 
     // Two "melodic" partials that wander across the mids.
-    final melodyA = math.log(600 * math.pow(2, 1.6 * math.sin(_time * 0.7))) / math.ln2;
-    final melodyB = math.log(2400 * math.pow(2, math.sin(_time * 0.43 + 1))) / math.ln2;
+    final melodyA =
+        math.log(600 * math.pow(2, 1.6 * math.sin(_time * 0.7))) / math.ln2;
+    final melodyB =
+        math.log(2400 * math.pow(2, math.sin(_time * 0.43 + 1))) / math.ln2;
 
-    final volumeDb =
-        _smoothedOutput <= 0.001 ? -120.0 : 20 * math.log(_smoothedOutput) / math.ln10;
+    final volumeDb = _smoothedOutput <= 0.001
+        ? -120.0
+        : 20 * math.log(_smoothedOutput) / math.ln10;
 
     final attack = 1 - math.exp(-dt * 38);
     final release = 1 - math.exp(-dt * 7);
@@ -409,10 +427,12 @@ class SpectrumSimulation extends ChangeNotifier {
         // Real audio: what you hear (already processed by the system EQ).
         target = ((live[j] - _liveFloorDb) / _liveRangeDb).clamp(0.0, 1.0);
       } else {
-        target = _syntheticLevel(j, kick, snare, hat, melodyA, melodyB, volumeDb, log40, log900, log4k);
+        target = _syntheticLevel(j, kick, snare, hat, melodyA, melodyB,
+            volumeDb, log40, log900, log4k);
       }
       final current = levels[j];
-      levels[j] = current + (target - current) * (target > current ? attack : release);
+      levels[j] =
+          current + (target - current) * (target > current ? attack : release);
 
       // Peak hold: wait ~0.6 s at the max, then fall.
       if (levels[j] >= peaks[j]) {
@@ -429,8 +449,17 @@ class SpectrumSimulation extends ChangeNotifier {
   }
 
   /// One bar of the synthetic groove (used where real audio isn't available).
-  double _syntheticLevel(int j, double kick, double snare, double hat, double melodyA,
-      double melodyB, double volumeDb, double log40, double log900, double log4k) {
+  double _syntheticLevel(
+      int j,
+      double kick,
+      double snare,
+      double hat,
+      double melodyA,
+      double melodyB,
+      double volumeDb,
+      double log40,
+      double log900,
+      double log4k) {
     {
       final f = frequencies[j];
       final t = j / (barCount - 1);
@@ -442,7 +471,8 @@ class SpectrumSimulation extends ChangeNotifier {
       db += 2.5 * math.sin(_time * (2.7 + j * 0.03) + _phaseB[j]);
       db += (_rand.nextDouble() - 0.5) * 4;
 
-      db += 22 * kick * (1 - (oct - log40) / 2).clamp(0.0, 1.0); // kick < 160 Hz
+      db +=
+          22 * kick * (1 - (oct - log40) / 2).clamp(0.0, 1.0); // kick < 160 Hz
       final sn = oct - log900;
       db += 12 * snare * math.exp(-sn * sn / 3); // snare around 900 Hz
       db += 14 * hat * ((oct - log4k) / 2).clamp(0.0, 1.0); // hats, top octaves
@@ -490,14 +520,14 @@ class _SpectrumPainter extends CustomPainter {
     final line = Paint()..strokeWidth = 1;
 
     // Horizontal lines at the dB marks of the scale on the left.
-    for (final db in const [12.0, 6.0, 0.0, -6.0, -12.0]) {
-      line.color = Colors.white.withValues(alpha: db == 0 ? 0.09 : 0.04);
+    for (final db in [12.0, 6.0, 0.0, -6.0, -12.0]) {
+      line.color = AppColors.overlay.withValues(alpha: db == 0 ? 0.09 : 0.04);
       final y = geo.yForDb(db).roundToDouble() + 0.5; // crisp 1px lines
       canvas.drawLine(Offset(0, y), Offset(size.width, y), line);
     }
 
     // Vertical lines through each band (they line up with the sliders).
-    line.color = Colors.white.withValues(alpha: 0.03);
+    line.color = AppColors.overlay.withValues(alpha: 0.03);
     for (var i = 0; i < kBandCount; i++) {
       final x = geo.xForBand(i).roundToDouble() + 0.5;
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), line);
@@ -534,7 +564,7 @@ class _SpectrumPainter extends CustomPainter {
           AppColors.accent.withValues(alpha: 0.85),
           AppColors.accentSoft,
         ],
-        stops: const [0, 0.6, 1],
+        stops: [0, 0.6, 1],
       ).createShader(rect);
     // Halo: glow faked with a wider translucent copy of each bar (a blur
     // filter would be far more expensive every frame).
@@ -550,7 +580,8 @@ class _SpectrumPainter extends CustomPainter {
   }
 
   /// Writes bar [i] as two triangles into [v].
-  static void _quad(Float32List v, int i, double l, double t, double r, double b) {
+  static void _quad(
+      Float32List v, int i, double l, double t, double r, double b) {
     final k = i * 12;
     v
       ..[k] = l
@@ -588,7 +619,10 @@ class _SpectrumPainter extends CustomPainter {
 
     // Without texture coordinates the shader is mapped by position, so the
     // gradients look exactly as they would on rectangles.
-    for (final (verts, paint) in [(_haloVerts, _haloPaint), (_barVerts, _barPaint)]) {
+    for (final (verts, paint) in [
+      (_haloVerts, _haloPaint),
+      (_barVerts, _barPaint)
+    ]) {
       final vertices = ui.Vertices.raw(ui.VertexMode.triangles, verts);
       canvas.drawVertices(vertices, BlendMode.srcOver, paint);
       vertices.dispose();

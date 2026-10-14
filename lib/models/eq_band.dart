@@ -38,7 +38,9 @@ class EqBand {
 String formatFrequency(double hz) {
   if (hz >= 1000) {
     final k = hz / 1000;
-    return k == k.roundToDouble() ? '${k.toInt()}k' : '${k.toStringAsFixed(1)}k';
+    return k == k.roundToDouble()
+        ? '${k.toInt()}k'
+        : '${k.toStringAsFixed(1)}k';
   }
   return hz.round().toString();
 }

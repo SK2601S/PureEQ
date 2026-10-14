@@ -23,7 +23,8 @@ class ApoService {
   static const String fileName = 'sk-eq.txt';
 
   static const String _apoKey = r'HKLM\SOFTWARE\EqualizerAPO';
-  static const String _renderKey = r'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render';
+  static const String _renderKey =
+      r'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render';
 
   /// Equalizer APO's pre-/post-mix effect CLSIDs, as found in a device's
   /// FxProperties when the Configurator attached it.
@@ -34,8 +35,10 @@ class ApoService {
 
   /// Device description ("Headset") and interface name ("EarPods"); shown
   /// together as "Headset (EarPods)", like Windows' sound settings.
-  static const String _descriptionProp = '{a45c254e-df1c-4efd-8020-67d146a850e0},2';
-  static const String _interfaceProp = '{b3f8fa53-0004-438e-9003-51a46e139bfc},6';
+  static const String _descriptionProp =
+      '{a45c254e-df1c-4efd-8020-67d146a850e0},2';
+  static const String _interfaceProp =
+      '{b3f8fa53-0004-438e-9003-51a46e139bfc},6';
 
   /// Equalizer APO's install and config folders, or null if not installed.
   ///
@@ -56,18 +59,27 @@ class ApoService {
     final hooked = <String>{};
     for (final clsid in _apoClsids) {
       final out = await _reg(['query', _renderKey, '/s', '/f', clsid, '/d']);
-      for (final m in RegExp(r'\\Render\\(\{[0-9a-fA-F-]+\})\\FxProperties').allMatches(out)) {
+      for (final m in RegExp(r'\\Render\\(\{[0-9a-fA-F-]+\})\\FxProperties')
+          .allMatches(out)) {
         hooked.add(m[1]!.toLowerCase());
       }
     }
 
-    final states = _perDevice(await _reg(['query', _renderKey, '/s', '/v', 'DeviceState']), 'DeviceState');
-    final descriptions = _perDevice(await _reg(['query', _renderKey, '/s', '/v', _descriptionProp]), _descriptionProp);
-    final interfaces = _perDevice(await _reg(['query', _renderKey, '/s', '/v', _interfaceProp]), _interfaceProp);
+    final states = _perDevice(
+        await _reg(['query', _renderKey, '/s', '/v', 'DeviceState']),
+        'DeviceState');
+    final descriptions = _perDevice(
+        await _reg(['query', _renderKey, '/s', '/v', _descriptionProp]),
+        _descriptionProp);
+    final interfaces = _perDevice(
+        await _reg(['query', _renderKey, '/s', '/v', _interfaceProp]),
+        _interfaceProp);
 
     final result = <AudioDevice>[];
     for (final MapEntry(key: id, value: state) in states.entries) {
-      if (int.tryParse(state.replaceFirst('0x', ''), radix: 16) != 1) continue; // 1 = active
+      if (int.tryParse(state.replaceFirst('0x', ''), radix: 16) != 1) {
+        continue; // 1 = active
+      }
       final description = descriptions[id] ?? 'Audio device';
       final interface = interfaces[id];
       result.add(AudioDevice(
@@ -92,7 +104,9 @@ class ApoService {
   Future<void> connect(String configDir) async {
     final text = await _readConfig(configDir);
     final updated = ApoConfig.connect(text);
-    if (updated != text) await _writeAtomic(_join(configDir, 'config.txt'), updated);
+    if (updated != text) {
+      await _writeAtomic(_join(configDir, 'config.txt'), updated);
+    }
   }
 
   /// Gives control back: removes SK EQ's include and restores the
@@ -100,13 +114,17 @@ class ApoService {
   Future<void> disconnect(String configDir) async {
     final text = await _readConfig(configDir);
     final updated = ApoConfig.disconnect(text);
-    if (updated != text) await _writeAtomic(_join(configDir, 'config.txt'), updated);
+    if (updated != text) {
+      await _writeAtomic(_join(configDir, 'config.txt'), updated);
+    }
   }
 
   /// Writes the curve. [processing] false (EQ off / A/B "B") writes a flat
   /// file, so bypass is heard immediately.
-  Future<void> writeCurve(String configDir, List<double> gains, {required bool processing}) =>
-      _writeAtomic(_join(configDir, fileName), ApoConfig.render(gains, processing: processing));
+  Future<void> writeCurve(String configDir, List<double> gains,
+          {required bool processing}) =>
+      _writeAtomic(_join(configDir, fileName),
+          ApoConfig.render(gains, processing: processing));
 
   /// The tool where devices are ticked (needs admin): `DeviceSelector.exe`
   /// in Equalizer APO 1.4+, `Configurator.exe` in older versions.
@@ -120,7 +138,8 @@ class ApoService {
 
   // ---------------------------------------------------------------------------
 
-  Future<String> _readConfig(String dir) => File(_join(dir, 'config.txt')).readAsString();
+  Future<String> _readConfig(String dir) =>
+      File(_join(dir, 'config.txt')).readAsString();
 
   /// Write to a temp file, then swap it in, so Equalizer APO never reads a
   /// half-written file.
@@ -132,7 +151,9 @@ class ApoService {
 
   static Future<String?> _regValue(String key, String name) async {
     final out = await _reg(['query', key, '/v', name]);
-    final m = RegExp('^\\s*${RegExp.escape(name)}\\s+REG_\\w+\\s+(.+)\$', multiLine: true).firstMatch(out);
+    final m = RegExp('^\\s*${RegExp.escape(name)}\\s+REG_\\w+\\s+(.+)\$',
+            multiLine: true)
+        .firstMatch(out);
     return m?[1]?.trim();
   }
 
@@ -162,7 +183,8 @@ class ApoService {
     return map;
   }
 
-  static String _join(String a, String b) => a.endsWith(r'\') ? '$a$b' : '$a\\$b';
+  static String _join(String a, String b) =>
+      a.endsWith(r'\') ? '$a$b' : '$a\\$b';
 }
 
 /// Pure text transformations for Equalizer APO config files (unit-tested).
@@ -173,13 +195,15 @@ class ApoConfig {
   /// Equalizer APO has no end-of-line comments, so `Include: x.txt  # note`
   /// would make it look for a file literally named "x.txt  # note".
   static const String _marker = '# SK EQ: managed automatically';
-  static const String _offNote = '# turned off by SK EQ (SK EQ → Sound → give control back)';
+  static const String _offNote =
+      '# turned off by SK EQ (SK EQ → Sound → give control back)';
 
   /// 1/3-octave centre frequencies, 20 Hz – 20 kHz. Sampling SK EQ's smooth
   /// curve this finely makes Equalizer APO's interpolation match what the
   /// app draws.
   static const List<double> frequencies = [
-    20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, //
+    20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500,
+    630, //
     800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000,
     12500, 16000, 20000,
   ];
@@ -193,12 +217,15 @@ class ApoConfig {
       b.writeln('Preamp: 0 dB');
       return b.toString();
     }
-    final points = [for (final f in frequencies) (f, interpolateGain(gains, f))];
+    final points = [
+      for (final f in frequencies) (f, interpolateGain(gains, f))
+    ];
     // Headroom: lower the overall level by the largest boost so it can't clip.
     final maxBoost = points.map((p) => p.$2).fold<double>(0, math.max);
     b
       ..writeln('Preamp: ${_fmt(-maxBoost)} dB')
-      ..writeln('GraphicEQ: ${points.map((p) => '${_fmtHz(p.$1)} ${_fmt(p.$2)}').join('; ')}');
+      ..writeln(
+          'GraphicEQ: ${points.map((p) => '${_fmtHz(p.$1)} ${_fmt(p.$2)}').join('; ')}');
     return b.toString();
   }
 
@@ -229,7 +256,10 @@ class ApoConfig {
     for (final line in _lines(config)) {
       if (line.trim() == _marker || _isOwnInclude(line)) continue;
       if (line.contains(_offNote)) {
-        out.add(line.replaceFirst(RegExp(r'^\s*#\s*'), '').replaceFirst(_offNote, '').trimRight());
+        out.add(line
+            .replaceFirst(RegExp(r'^\s*#\s*'), '')
+            .replaceFirst(_offNote, '')
+            .trimRight());
       } else {
         out.add(line);
       }
@@ -244,7 +274,13 @@ class ApoConfig {
   static List<String> otherActiveIncludes(String config) => [
         for (final line in _lines(config))
           if (_isActiveInclude(line))
-            line.trim().substring('include:'.length).trim().split(RegExp(r'\s+#')).first.trim(),
+            line
+                .trim()
+                .substring('include:'.length)
+                .trim()
+                .split(RegExp(r'\s+#'))
+                .first
+                .trim(),
       ];
 
   /// Include file names that SK EQ commented out in [connect].
@@ -259,12 +295,14 @@ class ApoConfig {
                 .trim(),
       ];
 
-  static bool _isInclude(String line) => line.trim().toLowerCase().startsWith('include:');
+  static bool _isInclude(String line) =>
+      line.trim().toLowerCase().startsWith('include:');
 
   static bool _isOwnInclude(String line) =>
       _isInclude(line) && line.toLowerCase().contains(ApoService.fileName);
 
-  static bool _isActiveInclude(String line) => _isInclude(line) && !_isOwnInclude(line);
+  static bool _isActiveInclude(String line) =>
+      _isInclude(line) && !_isOwnInclude(line);
 
   static List<String> _lines(String text) => text.split(RegExp(r'\r?\n'));
 
@@ -273,5 +311,6 @@ class ApoConfig {
     return (r == 0 ? 0.0 : r).toStringAsFixed(1);
   }
 
-  static String _fmtHz(double f) => f == f.roundToDouble() ? f.toInt().toString() : f.toString();
+  static String _fmtHz(double f) =>
+      f == f.roundToDouble() ? f.toInt().toString() : f.toString();
 }

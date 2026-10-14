@@ -87,6 +87,7 @@ The manifest address is set at build time with `--dart-define=PUREEQ_UPDATE_URL=
 | Window | Frameless window that fits your screen. Windows 11–style caption buttons on Windows; native traffic lights on macOS. |
 | Real sound | On Windows, changes the actual sound of every app (headphones, speakers) through Equalizer APO, with a **Live / Preview only** status in the title bar. See [Real sound](#real-sound-windows). |
 | Music buttons | ⏮ Previous, ⏯ Play/Pause, ⏭ Next and ⏹ Stop control whatever app is playing (Spotify, browser, VLC…) by sending the keyboard media keys. ⏯ shows Pause while sound is playing. Windows only for now. |
+| Settings | Gear button: Dark / Light / System theme, 6 accent colors, spectrum quality (Smooth / Balanced / Battery saver), start with Windows, close-to-tray or quit, version and update checks, sound status, reset. |
 | Updates | Checks automatically and from **⋯ → Check for updates**. A message at the top offers the new version, and **Update now** installs it and restarts SK EQ. See [Updates](#updates). |
 | Shortcuts | **B** = A/B compare, **E** = EQ on/off, **Ctrl/⌘+S** = save preset. |
 | Performance | The bars are the only layer redrawn every frame, the curve redraws only while it moves, glows avoid blur filters, and animation pauses while the window is minimized or in the tray. |

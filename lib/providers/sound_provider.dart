@@ -11,7 +11,8 @@ import 'eq_provider.dart';
 final apoServiceProvider = Provider<ApoService>((ref) => ApoService());
 
 /// Whether (and where) SK EQ changes the real system sound.
-final soundProvider = NotifierProvider<SoundNotifier, SoundState>(SoundNotifier.new);
+final soundProvider =
+    NotifierProvider<SoundNotifier, SoundState>(SoundNotifier.new);
 
 enum SoundStatus {
   checking,
@@ -54,14 +55,19 @@ class SoundState {
   final List<String> switchedOffApps;
   final String? error;
 
-  List<AudioDevice> get liveDevices => [for (final d in devices) if (d.apoEnabled) d];
+  List<AudioDevice> get liveDevices => [
+        for (final d in devices)
+          if (d.apoEnabled) d
+      ];
 
-  bool get inControl => status == SoundStatus.live || status == SoundStatus.notOnDevice;
+  bool get inControl =>
+      status == SoundStatus.live || status == SoundStatus.notOnDevice;
 }
 
 /// "peace.txt" → "Peace".
 String frontEndName(String includeFile) {
-  final base = includeFile.replaceAll(RegExp(r'\.txt$', caseSensitive: false), '');
+  final base =
+      includeFile.replaceAll(RegExp(r'\.txt$', caseSensitive: false), '');
   return base.isEmpty ? includeFile : base[0].toUpperCase() + base.substring(1);
 }
 
@@ -107,7 +113,10 @@ class SoundNotifier extends Notifier<SoundState> {
       final others = await _apo.otherActiveIncludes(location.config);
 
       if (choice == 'other' || (choice == null && others.isNotEmpty)) {
-        state = SoundState(status: SoundStatus.otherInControl, devices: devices, otherApps: others);
+        state = SoundState(
+            status: SoundStatus.otherInControl,
+            devices: devices,
+            otherApps: others);
         return;
       }
 
@@ -115,7 +124,9 @@ class SoundNotifier extends Notifier<SoundState> {
       await _apo.connect(location.config);
       await _writeNow();
       state = SoundState(
-        status: devices.any((d) => d.apoEnabled) ? SoundStatus.live : SoundStatus.notOnDevice,
+        status: devices.any((d) => d.apoEnabled)
+            ? SoundStatus.live
+            : SoundStatus.notOnDevice,
         devices: devices,
         switchedOffApps: await _apo.switchedOffIncludes(location.config),
       );
@@ -157,7 +168,8 @@ class SoundNotifier extends Notifier<SoundState> {
   void _scheduleWrite() {
     if (_configDir == null || !state.inControl) return;
     if (_writeTimer?.isActive ?? false) return;
-    final wait = const Duration(milliseconds: 80) - DateTime.now().difference(_lastWrite);
+    final wait = const Duration(milliseconds: 80) -
+        DateTime.now().difference(_lastWrite);
     _writeTimer = Timer(wait.isNegative ? Duration.zero : wait, _writeNow);
   }
 
@@ -174,10 +186,12 @@ class SoundNotifier extends Notifier<SoundState> {
     try {
       // Re-assert control in case another app rewrote config.txt.
       await _apo.connect(dir);
-      await _apo.writeCurve(dir, eq.effectiveGains, processing: eq.isProcessing);
+      await _apo.writeCurve(dir, eq.effectiveGains,
+          processing: eq.isProcessing);
     } catch (e) {
       debugPrint('SK EQ: could not write Equalizer APO config: $e');
-      state = SoundState(status: SoundStatus.error, devices: state.devices, error: '$e');
+      state = SoundState(
+          status: SoundStatus.error, devices: state.devices, error: '$e');
     } finally {
       _writing = false;
       if (_pendingWrite) {

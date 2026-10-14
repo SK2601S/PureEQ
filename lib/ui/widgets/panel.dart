@@ -40,7 +40,7 @@ class SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text.toUpperCase(),
-      style: const TextStyle(
+      style: TextStyle(
         color: AppColors.textSecondary,
         fontSize: 11,
         fontWeight: FontWeight.w600,

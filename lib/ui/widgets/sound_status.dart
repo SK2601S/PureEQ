@@ -12,14 +12,26 @@ class SoundStatusChip extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(soundProvider);
     final (String label, Color color, IconData icon) = switch (s.status) {
-      SoundStatus.live => ('Live', AppColors.positive, Icons.graphic_eq_rounded),
-      SoundStatus.checking => ('Checking…', AppColors.textMuted, Icons.hourglass_empty_rounded),
+      SoundStatus.live => (
+          'Live',
+          AppColors.positive,
+          Icons.graphic_eq_rounded
+        ),
+      SoundStatus.checking => (
+          'Checking…',
+          AppColors.textMuted,
+          Icons.hourglass_empty_rounded
+        ),
       SoundStatus.otherInControl => (
           '${s.otherApps.isEmpty ? 'Other app' : frontEndName(s.otherApps.first)} in control',
           AppColors.bypass,
           Icons.swap_horiz_rounded,
         ),
-      SoundStatus.error => ('Sound error', AppColors.danger, Icons.error_outline_rounded),
+      SoundStatus.error => (
+          'Sound error',
+          AppColors.danger,
+          Icons.error_outline_rounded
+        ),
       _ => ('Preview only', AppColors.bypass, Icons.volume_off_rounded),
     };
     final tooltip = s.status == SoundStatus.live
@@ -46,7 +58,11 @@ class SoundStatusChip extends ConsumerWidget {
               children: [
                 Icon(icon, size: 16, color: color),
                 const SizedBox(width: 6),
-                Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700)),
+                Text(label,
+                    style: TextStyle(
+                        color: color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700)),
               ],
             ),
           ),
@@ -73,7 +89,7 @@ class _SoundDialog extends ConsumerWidget {
     final s = ref.watch(soundProvider);
     final n = ref.read(soundProvider.notifier);
 
-    const muted = TextStyle(color: AppColors.textSecondary, height: 1.45);
+    final muted = TextStyle(color: AppColors.textSecondary, height: 1.45);
     final children = <Widget>[];
     final actions = <Widget>[];
 
@@ -84,30 +100,37 @@ class _SoundDialog extends ConsumerWidget {
 
     switch (s.status) {
       case SoundStatus.checking:
-        children.add(const Text('Checking your audio setup…', style: muted));
+        children.add(Text('Checking your audio setup…', style: muted));
       case SoundStatus.unsupported:
-        children.add(const Text(
+        children.add(Text(
           'On this system SK EQ shows the equalizer but cannot change the system sound yet.',
           style: muted,
         ));
       case SoundStatus.notInstalled:
-        children.add(const Text(
+        children.add(Text(
           'To change the real sound, SK EQ uses Equalizer APO — a free, open-source audio driver for Windows.',
           style: muted,
         ));
         step('1. Download and install Equalizer APO.');
-        step('2. When it asks which devices to use, tick your playback device (for example your headphones).');
+        step(
+            '2. When it asks which devices to use, tick your playback device (for example your headphones).');
         step('3. Restart your PC, then open SK EQ.');
-        actions.add(FilledButton(onPressed: n.openDownloadPage, child: const Text('Get Equalizer APO')));
+        actions.add(FilledButton(
+            onPressed: n.openDownloadPage,
+            child: const Text('Get Equalizer APO')));
       case SoundStatus.otherInControl:
-        final other = s.otherApps.isEmpty ? 'Another app' : frontEndName(s.otherApps.first);
+        final other = s.otherApps.isEmpty
+            ? 'Another app'
+            : frontEndName(s.otherApps.first);
         children.add(Text(
           '$other is controlling Equalizer APO right now, so SK EQ does not change the sound. '
           'Using both at once would stack two equalizers.',
           style: muted,
         ));
-        step('Switching keeps $other\'s settings — you can give control back any time here.');
-        actions.add(FilledButton(onPressed: n.takeControl, child: const Text('Use SK EQ instead')));
+        step(
+            'Switching keeps $other\'s settings — you can give control back any time here.');
+        actions.add(FilledButton(
+            onPressed: n.takeControl, child: const Text('Use SK EQ instead')));
       case SoundStatus.live:
       case SoundStatus.notOnDevice:
       case SoundStatus.error:
@@ -115,12 +138,12 @@ class _SoundDialog extends ConsumerWidget {
           children.add(Text("Couldn't update Equalizer APO: ${s.error}",
               style: const TextStyle(color: AppColors.danger)));
         } else if (s.status == SoundStatus.notOnDevice) {
-          children.add(const Text(
+          children.add(Text(
             'SK EQ is connected to Equalizer APO, but Equalizer APO is not enabled for any of your playback devices yet.',
             style: muted,
           ));
         } else {
-          children.add(const Text('SK EQ is changing the real sound.', style: muted));
+          children.add(Text('SK EQ is changing the real sound.', style: muted));
         }
         if (s.devices.isNotEmpty) {
           children.add(const SizedBox(height: 12));
@@ -130,16 +153,21 @@ class _SoundDialog extends ConsumerWidget {
               child: Row(
                 children: [
                   Icon(
-                    d.apoEnabled ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                    d.apoEnabled
+                        ? Icons.check_circle_rounded
+                        : Icons.radio_button_unchecked_rounded,
                     size: 18,
-                    color: d.apoEnabled ? AppColors.positive : AppColors.textMuted,
+                    color:
+                        d.apoEnabled ? AppColors.positive : AppColors.textMuted,
                   ),
                   const SizedBox(width: 10),
                   Expanded(child: Text(d.name)),
                   Text(
                     d.apoEnabled ? 'Live' : 'Not enabled',
                     style: TextStyle(
-                      color: d.apoEnabled ? AppColors.positive : AppColors.textMuted,
+                      color: d.apoEnabled
+                          ? AppColors.positive
+                          : AppColors.textMuted,
                       fontSize: 12,
                     ),
                   ),
@@ -150,7 +178,8 @@ class _SoundDialog extends ConsumerWidget {
         }
         if (s.devices.any((d) => !d.apoEnabled)) {
           children.add(const SizedBox(height: 10));
-          step('To enable a device: choose devices, tick it, click OK, then restart your PC.');
+          step(
+              'To enable a device: choose devices, tick it, click OK, then restart your PC.');
           actions.add(OutlinedButton(
             onPressed: n.openDeviceSelector,
             child: const Text('Choose devices'),
@@ -170,7 +199,7 @@ class _SoundDialog extends ConsumerWidget {
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: AppColors.border),
       ),
       title: const Text('Sound output', style: TextStyle(fontSize: 18)),
       content: SizedBox(
@@ -184,7 +213,9 @@ class _SoundDialog extends ConsumerWidget {
       actions: [
         ...actions,
         TextButton(onPressed: n.refresh, child: const Text('Check again')),
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
+        TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close')),
       ],
     );
   }

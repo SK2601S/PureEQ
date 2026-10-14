@@ -45,7 +45,8 @@ Future<String?> showSavePresetDialog(
 }
 
 class _SavePresetDialog extends StatefulWidget {
-  const _SavePresetDialog({required this.existingNames, required this.initialName});
+  const _SavePresetDialog(
+      {required this.existingNames, required this.initialName});
 
   final Set<String> existingNames;
   final String initialName;
@@ -94,7 +95,7 @@ class _SavePresetDialogState extends State<_SavePresetDialog> {
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: AppColors.border),
       ),
       title: const Text('Save preset', style: TextStyle(fontSize: 18)),
       content: SizedBox(
@@ -108,8 +109,10 @@ class _SavePresetDialogState extends State<_SavePresetDialog> {
           decoration: InputDecoration(
             hintText: 'e.g. Late Night',
             errorText: _error,
-            helperText: overwriting ? 'This will overwrite your existing preset.' : null,
-            helperStyle: const TextStyle(color: AppColors.accent),
+            helperText: overwriting
+                ? 'This will overwrite your existing preset.'
+                : null,
+            helperStyle: TextStyle(color: AppColors.accent),
           ),
         ),
       ),

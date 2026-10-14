@@ -10,10 +10,24 @@ import 'package:window_manager/window_manager.dart';
 
 import 'app.dart';
 import 'providers/eq_provider.dart';
+import 'providers/window_provider.dart';
+import 'services/startup_service.dart';
 import 'theme/app_theme.dart';
 
-Future<void> main() async {
+Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // "Start with Windows" launches us with --minimized: stay in the tray.
+  final startHidden = args.contains(StartupService.minimizedFlag);
+
+  // --- Persistence --------------------------------------------------------
+  // Loaded once up front so providers can read it synchronously.
+  await _migrateSettingsFromPureEq();
+  final prefs = await SharedPreferences.getInstance();
+  if (prefs.getString('pureeq.ui.theme') == 'light') {
+    AppColors.apply(
+        Palette.of(Brightness.light, AccentColor.cyan)); // window background
+  }
 
   // --- Window setup -------------------------------------------------------
   // The native title bar is hidden so we can draw our own: on macOS the
@@ -30,18 +44,17 @@ Future<void> main() async {
     titleBarStyle: TitleBarStyle.hidden,
   );
   windowManager.waitUntilReadyToShow(windowOptions, () async {
+    if (startHidden) return;
     await windowManager.show();
     await windowManager.focus();
   });
 
-  // --- Persistence --------------------------------------------------------
-  // Loaded once up front so providers can read it synchronously.
-  await _migrateSettingsFromPureEq();
-  final prefs = await SharedPreferences.getInstance();
-
   runApp(
     ProviderScope(
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        windowVisibleProvider.overrideWith((ref) => !startHidden),
+      ],
       child: const SkEqApp(),
     ),
   );
@@ -58,7 +71,8 @@ Future<void> _migrateSettingsFromPureEq() async {
     final appData = newDir.parent.parent.path;
     final sep = Platform.pathSeparator;
     final newFile = File('${newDir.path}${sep}shared_preferences.json');
-    final oldFile = File('$appData${sep}PureEQ${sep}PureEQ${sep}shared_preferences.json');
+    final oldFile =
+        File('$appData${sep}PureEQ${sep}PureEQ${sep}shared_preferences.json');
     if (!await newFile.exists() && await oldFile.exists()) {
       await newDir.create(recursive: true);
       await oldFile.copy(newFile.path);

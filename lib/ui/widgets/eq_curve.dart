@@ -142,7 +142,9 @@ class _EqCurveOverlayState extends ConsumerState<EqCurveOverlay> {
               onDoubleTap: () {
                 final at = _doubleTapAt;
                 final band = at == null ? null : _hitBand(at);
-                if (band != null) ref.read(eqProvider.notifier).setBandGain(band, 0);
+                if (band != null) {
+                  ref.read(eqProvider.notifier).setBandGain(band, 0);
+                }
               },
               child: RepaintBoundary(
                 child: CustomPaint(
@@ -212,7 +214,10 @@ class _CurvePainter extends CustomPainter {
           ..shader = LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [pos.withValues(alpha: 0.22 * mix), pos.withValues(alpha: 0.03)],
+            colors: [
+              pos.withValues(alpha: 0.22 * mix),
+              pos.withValues(alpha: 0.03)
+            ],
           ).createShader(Rect.fromLTRB(0, geo.top, size.width, geo.midY)),
       )
       ..restore()
@@ -224,7 +229,10 @@ class _CurvePainter extends CustomPainter {
           ..shader = LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [neg.withValues(alpha: 0.03), neg.withValues(alpha: 0.22 * mix)],
+            colors: [
+              neg.withValues(alpha: 0.03),
+              neg.withValues(alpha: 0.22 * mix)
+            ],
           ).createShader(Rect.fromLTRB(0, geo.midY, size.width, geo.bottom)),
       )
       ..restore();
@@ -246,7 +254,7 @@ class _CurvePainter extends CustomPainter {
     // Glow as two wide translucent strokes (no blur filter: the whole scene
     // is recomposited every spectrum frame, so blurs here would cost GPU
     // time even while the curve is still).
-    for (final (width, alpha) in const [(10.0, 0.10), (5.5, 0.22)]) {
+    for (final (width, alpha) in [(10.0, 0.10), (5.5, 0.22)]) {
       canvas.drawPath(
         curve,
         Paint()
@@ -278,12 +286,18 @@ class _CurvePainter extends CustomPainter {
           : g < -0.05
               ? neg
               : Color.lerp(AppColors.textMuted, AppColors.accent, mix * 0.7)!;
-      final radius = dragging ? 8.0 : hovered ? 7.0 : 5.0;
+      final radius = dragging
+          ? 8.0
+          : hovered
+              ? 7.0
+              : 5.0;
 
       if (dragging || hovered) {
         canvas
-          ..drawCircle(center, radius + 8, Paint()..color = color.withValues(alpha: 0.10))
-          ..drawCircle(center, radius + 4, Paint()..color = color.withValues(alpha: 0.22));
+          ..drawCircle(center, radius + 8,
+              Paint()..color = color.withValues(alpha: 0.10))
+          ..drawCircle(center, radius + 4,
+              Paint()..color = color.withValues(alpha: 0.22));
       }
       canvas.drawCircle(center, radius, Paint()..color = AppColors.inset);
       canvas.drawCircle(
@@ -301,7 +315,9 @@ class _CurvePainter extends CustomPainter {
 
     // --- Value bubble for the hovered / dragged point. ---
     final active = dragBand ?? hoverBand;
-    if (active != null) _paintBubble(canvas, size, geo, active, gains[active], pos, neg);
+    if (active != null) {
+      _paintBubble(canvas, size, geo, active, gains[active], pos, neg);
+    }
   }
 
   void _paintBubble(
@@ -317,12 +333,16 @@ class _CurvePainter extends CustomPainter {
       text: TextSpan(children: [
         TextSpan(
           text: '${formatFrequency(kBandFrequencies[band])} Hz  ',
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
         ),
         TextSpan(
           text: '${formatGain(gain)} dB',
           style: TextStyle(
-            color: gain > 0.05 ? pos : gain < -0.05 ? neg : AppColors.textPrimary,
+            color: gain > 0.05
+                ? pos
+                : gain < -0.05
+                    ? neg
+                    : AppColors.textPrimary,
             fontSize: 12,
             fontWeight: FontWeight.w700,
           ),

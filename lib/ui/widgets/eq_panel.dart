@@ -69,7 +69,8 @@ class _EqPanelState extends ConsumerState<EqPanel> {
                 SizedBox(
                   width: _gutter,
                   child: CustomPaint(
-                    painter: DbScalePainter((db, size) => CurveGeometry(size).yForDb(db)),
+                    painter: DbScalePainter(
+                        (db, size) => CurveGeometry(size).yForDb(db)),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -78,7 +79,8 @@ class _EqPanelState extends ConsumerState<EqPanel> {
                     decoration: BoxDecoration(
                       color: AppColors.inset,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.border.withValues(alpha: 0.6)),
+                      border: Border.all(
+                          color: AppColors.border.withValues(alpha: 0.6)),
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(13),
@@ -188,10 +190,14 @@ class _LayerToggle extends StatelessWidget {
             duration: const Duration(milliseconds: 180),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: selected ? AppColors.accent.withValues(alpha: 0.08) : Colors.transparent,
+              color: selected
+                  ? AppColors.accent.withValues(alpha: 0.08)
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: selected ? AppColors.accent.withValues(alpha: 0.35) : AppColors.border,
+                color: selected
+                    ? AppColors.accent.withValues(alpha: 0.35)
+                    : AppColors.border,
               ),
             ),
             child: AnimatedOpacity(
@@ -204,7 +210,8 @@ class _LayerToggle extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     label,
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                    style:
+                        TextStyle(color: AppColors.textSecondary, fontSize: 11),
                   ),
                 ],
               ),
@@ -226,7 +233,7 @@ class _BarSwatch extends StatelessWidget {
       height: 12,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(2),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.bottomCenter,
           end: Alignment.topCenter,
           colors: [AppColors.accentDeep, AppColors.accent],
@@ -247,7 +254,10 @@ class _LineSwatch extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.accent,
         borderRadius: BorderRadius.circular(1),
-        boxShadow: [BoxShadow(color: AppColors.accent.withValues(alpha: 0.6), blurRadius: 4)],
+        boxShadow: [
+          BoxShadow(
+              color: AppColors.accent.withValues(alpha: 0.6), blurRadius: 4)
+        ],
       ),
     );
   }

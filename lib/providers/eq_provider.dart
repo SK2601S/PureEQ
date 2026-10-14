@@ -10,7 +10,8 @@ import '../services/preset_service.dart';
 
 /// Overridden in main() with the already-loaded instance.
 final sharedPreferencesProvider = Provider<SharedPreferences>(
-  (ref) => throw UnimplementedError('Override sharedPreferencesProvider in main()'),
+  (ref) =>
+      throw UnimplementedError('Override sharedPreferencesProvider in main()'),
 );
 
 final presetServiceProvider = Provider<PresetService>(
@@ -80,7 +81,8 @@ class EqState {
       ];
 
   /// Contribution of the bass / treble shelves to band [i], in dB.
-  double shelfOffset(int i) => bass * _bassWeights[i] + treble * _trebleWeights[i];
+  double shelfOffset(int i) =>
+      bass * _bassWeights[i] + treble * _trebleWeights[i];
 
   /// The response actually applied: band gains plus bass/treble shelves.
   /// This is what the EQ curve draws.
@@ -99,7 +101,9 @@ class EqState {
   }
 
   bool get isFlat =>
-      bass.abs() < 0.05 && treble.abs() < 0.05 && gains.every((g) => g.abs() < 0.05);
+      bass.abs() < 0.05 &&
+      treble.abs() < 0.05 &&
+      gains.every((g) => g.abs() < 0.05);
 
   /// True when the current settings differ from the selected preset, i.e.
   /// there is something worth saving. Drives the Save Preset highlight.
@@ -165,7 +169,8 @@ class EqNotifier extends Notifier<EqState> {
   /// Switches instantly between A (EQ) and B (bypass). No-op while EQ is off.
   void toggleCompare() {
     if (!state.enabled) return;
-    state = state.copyWith(compareBypass: !state.compareBypass); // not persisted
+    state =
+        state.copyWith(compareBypass: !state.compareBypass); // not persisted
   }
 
   // ---------------------------------------------------------------------------

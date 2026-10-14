@@ -91,14 +91,17 @@ class _BandSliderState extends State<BandSlider> {
                     TextSpan(
                       text: widget.label,
                       style: TextStyle(
-                        color: active ? AppColors.textPrimary : AppColors.textSecondary,
+                        color: active
+                            ? AppColors.textPrimary
+                            : AppColors.textSecondary,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const TextSpan(
+                    TextSpan(
                       text: ' Hz',
-                      style: TextStyle(color: AppColors.textMuted, fontSize: 10),
+                      style:
+                          TextStyle(color: AppColors.textMuted, fontSize: 10),
                     ),
                   ]),
                 ),
@@ -108,7 +111,8 @@ class _BandSliderState extends State<BandSlider> {
                   builder: (context, c) => Listener(
                     onPointerSignal: (event) {
                       if (event is PointerScrollEvent) {
-                        _set(widget.value + (event.scrollDelta.dy > 0 ? -0.5 : 0.5));
+                        _set(widget.value +
+                            (event.scrollDelta.dy > 0 ? -0.5 : 0.5));
                       }
                     },
                     child: GestureDetector(
@@ -139,9 +143,12 @@ class _BandSliderState extends State<BandSlider> {
                 child: Center(
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                     decoration: BoxDecoration(
-                      color: active ? color.withValues(alpha: 0.12) : Colors.transparent,
+                      color: active
+                          ? color.withValues(alpha: 0.12)
+                          : Colors.transparent,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -151,7 +158,7 @@ class _BandSliderState extends State<BandSlider> {
                         color: color,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        fontFeatures: const [FontFeature.tabularFigures()],
+                        fontFeatures: [const FontFeature.tabularFigures()],
                       ),
                     ),
                   ),
@@ -188,10 +195,10 @@ class _BandSliderPainter extends CustomPainter {
 
     // Tick marks at ±12, ±6 and 0 dB.
     final tick = Paint()..strokeWidth = 1;
-    for (final db in const [12.0, 6.0, 0.0, -6.0, -12.0]) {
+    for (final db in [12.0, 6.0, 0.0, -6.0, -12.0]) {
       final y = yFor(db).roundToDouble() + 0.5;
       final isZero = db == 0;
-      tick.color = Colors.white.withValues(alpha: isZero ? 0.22 : 0.09);
+      tick.color = AppColors.overlay.withValues(alpha: isZero ? 0.22 : 0.09);
       final len = isZero ? 7.0 : 4.0;
       canvas.drawLine(Offset(cx - 9 - len, y), Offset(cx - 9, y), tick);
       canvas.drawLine(Offset(cx + 9, y), Offset(cx + 9 + len, y), tick);
@@ -200,7 +207,8 @@ class _BandSliderPainter extends CustomPainter {
     // Track.
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromLTRB(cx - _trackWidth / 2, half, cx + _trackWidth / 2, size.height - half),
+        Rect.fromLTRB(cx - _trackWidth / 2, half, cx + _trackWidth / 2,
+            size.height - half),
         const Radius.circular(_trackWidth / 2),
       ),
       Paint()..color = AppColors.track,
@@ -223,8 +231,10 @@ class _BandSliderPainter extends CustomPainter {
         // Blur-free glow: two translucent, slightly wider copies.
         final a = highlighted ? 1.0 : 0.6;
         canvas
-          ..drawRRect(fill.inflate(4), Paint()..color = color.withValues(alpha: 0.10 * a))
-          ..drawRRect(fill.inflate(2), Paint()..color = color.withValues(alpha: 0.22 * a));
+          ..drawRRect(fill.inflate(4),
+              Paint()..color = color.withValues(alpha: 0.10 * a))
+          ..drawRRect(fill.inflate(2),
+              Paint()..color = color.withValues(alpha: 0.22 * a));
       }
       canvas.drawRRect(fill, Paint()..color = color);
     }
@@ -239,13 +249,26 @@ class _BandSliderPainter extends CustomPainter {
       final glow = value.abs() < 0.05 ? AppColors.accent : color;
       final a = highlighted ? 1.0 : 0.5;
       canvas
-        ..drawRRect(thumb.inflate(5), Paint()..color = glow.withValues(alpha: 0.08 * a))
-        ..drawRRect(thumb.inflate(2.5), Paint()..color = glow.withValues(alpha: 0.2 * a));
+        ..drawRRect(
+            thumb.inflate(5), Paint()..color = glow.withValues(alpha: 0.08 * a))
+        ..drawRRect(thumb.inflate(2.5),
+            Paint()..color = glow.withValues(alpha: 0.2 * a));
     }
     canvas.drawRRect(
       thumb,
-      Paint()..color = enabled ? const Color(0xFFEFFBFF) : const Color(0xFF8A8A90),
+      Paint()
+        ..color = enabled ? const Color(0xFFEFFBFF) : const Color(0xFF8A8A90),
     );
+    if (!AppColors.isDark) {
+      // Light theme: outline so the white knob stands out on white cards.
+      canvas.drawRRect(
+        thumb,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.2
+          ..color = AppColors.textMuted,
+      );
+    }
     canvas.drawLine(
       Offset(cx - thumbW / 2 + 7, yv),
       Offset(cx + thumbW / 2 - 7, yv),
@@ -260,7 +283,9 @@ class _BandSliderPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_BandSliderPainter old) =>
-      old.value != value || old.enabled != enabled || old.highlighted != highlighted;
+      old.value != value ||
+      old.enabled != enabled ||
+      old.highlighted != highlighted;
 }
 
 /// dB labels (+12 … -12) aligned with the band slider tracks. Sits in the
@@ -276,7 +301,8 @@ class BandScale extends StatelessWidget {
         Expanded(
           child: CustomPaint(
             size: Size.infinite,
-            painter: DbScalePainter((db, size) => BandSliderLayout.yFor(db, size.height)),
+            painter: DbScalePainter(
+                (db, size) => BandSliderLayout.yFor(db, size.height)),
           ),
         ),
         const SizedBox(height: BandSliderLayout.footerHeight),
@@ -304,7 +330,7 @@ class DbScalePainter extends CustomPainter {
             color: db == 0 ? AppColors.textSecondary : AppColors.textMuted,
             fontSize: 10,
             fontWeight: db == 0 ? FontWeight.w600 : FontWeight.w400,
-            fontFeatures: const [FontFeature.tabularFigures()],
+            fontFeatures: [const FontFeature.tabularFigures()],
           ),
         ),
         textDirection: TextDirection.ltr,

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/update_provider.dart';
 import '../../theme/app_theme.dart';
 import 'app_logo.dart';
+import 'settings_dialog.dart';
 import 'update_banner.dart';
 
 /// "⋯" button in the title bar: Check for updates · About SK EQ.
@@ -15,7 +16,8 @@ class AppMenuButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final update = ref.watch(updateProvider);
     final hasUpdate = update.info != null &&
-        (update.status == UpdateStatus.available || update.status == UpdateStatus.error);
+        (update.status == UpdateStatus.available ||
+            update.status == UpdateStatus.error);
 
     return PopupMenuButton<String>(
       tooltip: 'More',
@@ -30,33 +32,51 @@ class AppMenuButton extends ConsumerWidget {
             } else {
               checkForUpdatesManually(context, ref);
             }
+          case 'settings':
+            showSettingsDialog(context);
           case 'about':
             showAboutSkEq(context, ref);
         }
       },
       itemBuilder: (_) => [
         PopupMenuItem(
+          value: 'settings',
+          child: Row(
+            children: [
+              Icon(Icons.settings_rounded,
+                  size: 18, color: AppColors.textSecondary),
+              const SizedBox(width: 12),
+              const Text('Settings'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
           value: 'update',
           enabled: !update.isBusy,
           child: Row(
             children: [
               Icon(
-                hasUpdate ? Icons.system_update_alt_rounded : Icons.update_rounded,
+                hasUpdate
+                    ? Icons.system_update_alt_rounded
+                    : Icons.update_rounded,
                 size: 18,
                 color: hasUpdate ? AppColors.accent : AppColors.textSecondary,
               ),
               const SizedBox(width: 12),
-              Text(hasUpdate ? 'Update to ${update.info!.version}…' : 'Check for updates'),
+              Text(hasUpdate
+                  ? 'Update to ${update.info!.version}…'
+                  : 'Check for updates'),
             ],
           ),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'about',
           child: Row(
             children: [
-              Icon(Icons.info_outline_rounded, size: 18, color: AppColors.textSecondary),
-              SizedBox(width: 12),
-              Text('About SK EQ'),
+              Icon(Icons.info_outline_rounded,
+                  size: 18, color: AppColors.textSecondary),
+              const SizedBox(width: 12),
+              const Text('About SK EQ'),
             ],
           ),
         ),
@@ -67,7 +87,8 @@ class AppMenuButton extends ConsumerWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            const Icon(Icons.more_horiz_rounded, size: 22, color: AppColors.textSecondary),
+            Icon(Icons.more_horiz_rounded,
+                size: 22, color: AppColors.textSecondary),
             if (hasUpdate)
               Positioned(
                 top: 6,
@@ -98,7 +119,7 @@ Future<void> showAboutSkEq(BuildContext context, WidgetRef ref) {
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: AppColors.border),
       ),
       content: SizedBox(
         width: 320,
@@ -108,20 +129,22 @@ Future<void> showAboutSkEq(BuildContext context, WidgetRef ref) {
             const SizedBox(height: 8),
             const AppLogo(size: 56),
             const SizedBox(height: 16),
-            const Text('SK EQ', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+            const Text('SK EQ',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
             FutureBuilder(
               future: ref.read(updateServiceProvider).currentVersion(),
               builder: (_, snap) => Text(
                 snap.hasData ? 'Version ${snap.data}' : ' ',
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: AppColors.textSecondary),
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'A minimal 10-band graphic equalizer\nwith a real-time spectrum visualizer.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12, height: 1.4),
+              style: TextStyle(
+                  color: AppColors.textMuted, fontSize: 12, height: 1.4),
             ),
           ],
         ),
