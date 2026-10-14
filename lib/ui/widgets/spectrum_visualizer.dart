@@ -49,7 +49,10 @@ class SpectrumVisualizer extends ConsumerStatefulWidget {
 }
 
 class _SpectrumVisualizerState extends ConsumerState<SpectrumVisualizer> {
-  final SpectrumSimulation _sim = SpectrumSimulation(barCount: 128);
+  /// Windows and macOS report what is really playing, so the demo
+  /// animation never runs there while nothing plays.
+  final SpectrumSimulation _sim = SpectrumSimulation(barCount: 128)
+    ..demoPlaying = !(Platform.isWindows || Platform.isMacOS);
   late final AppLifecycleListener _lifecycle;
   bool? _lastCompare;
 
@@ -105,10 +108,14 @@ class _SpectrumVisualizerState extends ConsumerState<SpectrumVisualizer> {
       _liveSub ??= _liveChannel.receiveBroadcastStream().listen(
         (frame) {
           if (frame is Float32List) {
-            _sim.pushLive(frame);
-            _updatePlaying(_sim.liveHasSignal);
+            // One value = no live spectrum (macOS without real sound), only
+            // whether any app is playing: 1 or 0.
+            final playing = frame.length == 1
+                ? (_sim.demoPlaying = frame[0] > 0.5)
+                : (_sim..pushLive(frame)).liveHasSignal;
+            _updatePlaying(playing);
             // Sound after silence: wake the pacer right away.
-            if (_timer != null && _sim.isQuiet && _sim.liveHasSignal) {
+            if (_timer != null && _sim.isQuiet && playing) {
               _timer!.cancel();
               _timer = null;
               if (!_paused) _requestFrame();
@@ -327,16 +334,31 @@ class SpectrumSimulation extends ChangeNotifier {
 
   List<double>? _live;
 
+  /// Seconds since the last live frame. If frames stop coming (device
+  /// switching, capture restarting) the bars fall instead of freezing.
+  double _liveAge = 0;
+  static const double _liveTimeout = 0.3;
+
   /// True once real audio frames are being received.
   bool get hasLiveInput => _live != null;
 
   /// Called for every frame from the native capture.
   void pushLive(List<double> dbPerBar) {
-    if (dbPerBar.length == barCount) _live = dbPerBar;
+    if (dbPerBar.length == barCount) {
+      _live = dbPerBar;
+      _liveAge = 0;
+    }
   }
 
   /// Live input stopped (window hidden / capture unavailable).
   void clearLive() => _live = null;
+
+  /// Without live input, whether the demo animation may play: only while
+  /// something is known to be playing, so silence never looks like music.
+  bool demoPlaying = false;
+
+  /// Demo loudness, easing toward [demoPlaying] (1) or silence (0).
+  double _demoMix = 0;
 
   /// Whether the latest live frame contains audible sound.
   bool get liveHasSignal {
@@ -440,12 +462,20 @@ class SpectrumSimulation extends ChangeNotifier {
 
     // Pass 1: where each bar wants to be.
     final live = _live;
+    _liveAge += dt;
+    final liveStale = _liveAge > _liveTimeout;
+    _demoMix = _settle(_demoMix, demoPlaying ? 1.0 : 0.0, ease);
     for (var j = 0; j < barCount; j++) {
       _targets[j] = live != null
           // Real audio: what you hear (already processed by the system EQ).
-          ? ((live[j] - _liveFloorDb) / _liveRangeDb).clamp(0.0, 1.0)
-          : _syntheticLevel(j, kick, snare, hat, melodyA, melodyB, volumeDb,
-              log40, log900, log4k);
+          ? (liveStale
+              ? 0.0
+              : ((live[j] - _liveFloorDb) / _liveRangeDb).clamp(0.0, 1.0))
+          : _demoMix == 0
+              ? 0.0
+              : _demoMix *
+                  _syntheticLevel(j, kick, snare, hat, melodyA, melodyB,
+                      volumeDb, log40, log900, log4k);
     }
 
     // Optional "Smooth bars": blend each bar with its neighbours (1-2-3-2-1

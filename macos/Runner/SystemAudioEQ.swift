@@ -176,9 +176,20 @@ final class SystemAudioEQ: NSObject, FlutterStreamHandler {
     spectrumTimer?.cancel()
     let timer = DispatchSource.makeTimerSource(queue: spectrumQueue)
     timer.schedule(deadline: .now(), repeating: .milliseconds(16))
+    var tick = 0
     timer.setEventHandler { [weak self] in
-      guard let self, self.processor.isRunning else { return }
-      let bars = self.analyzer.analyze(self.processor)
+      guard let self else { return }
+      let bars: [Float]
+      if self.processor.isRunning {
+        bars = self.analyzer.analyze(self.processor)
+      } else {
+        // No real sound (off, no permission, older macOS): only tell Dart
+        // whether any app is playing, ~4 times a second, so the demo
+        // animation stops when the music stops.
+        tick += 1
+        if tick % 15 != 1 { return }
+        bars = [outputIsPlaying() ? 1 : 0]
+      }
       let data = bars.withUnsafeBufferPointer { Data(buffer: $0) }
       DispatchQueue.main.async {
         self.spectrumSink?(FlutterStandardTypedData(float32: data))
@@ -200,6 +211,18 @@ final class SystemAudioEQ: NSObject, FlutterStreamHandler {
   private func sendSpectrumStopped() {
     spectrumSink?(FlutterError(code: "stopped", message: "audio engine stopped", details: nil))
   }
+}
+
+/// Whether any app is playing on the default output device.
+private func outputIsPlaying() -> Bool {
+  let system = AudioObjectID(kAudioObjectSystemObject)
+  guard
+    let device = try? readValue(system, kAudioHardwarePropertyDefaultOutputDevice,
+                                AudioObjectID(kAudioObjectUnknown)),
+    device != kAudioObjectUnknown,
+    let running = try? readValue(device, kAudioDevicePropertyDeviceIsRunningSomewhere, UInt32(0))
+  else { return false }
+  return running != 0
 }
 
 // MARK: - DSP (runs on the real-time audio thread)
@@ -454,8 +477,10 @@ private func readValue<T>(_ object: AudioObjectID, _ selector: AudioObjectProper
   var addr = address(selector, scope)
   var size = UInt32(MemoryLayout<T>.size)
   var value = initial
-  try check(AudioObjectGetPropertyData(object, &addr, 0, nil, &size, &value),
-            "Reading audio property \(selector)")
+  let status = withUnsafeMutablePointer(to: &value) {
+    AudioObjectGetPropertyData(object, &addr, 0, nil, &size, $0)
+  }
+  try check(status, "Reading audio property \(selector)")
   return value
 }
 
