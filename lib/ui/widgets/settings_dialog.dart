@@ -184,8 +184,12 @@ class _SettingsDialog extends ConsumerWidget {
                     const _Section('Behavior'),
                     if (StartupService.isSupported)
                       _Switch(
-                        title: 'Start with Windows',
-                        subtitle: 'Opens quietly in the tray when you sign in.',
+                        title: Platform.isMacOS
+                            ? 'Open at login'
+                            : 'Start with Windows',
+                        subtitle: Platform.isMacOS
+                            ? 'Opens quietly in the menu bar when you log in, so the EQ keeps working.'
+                            : 'Opens quietly in the tray when you sign in.',
                         value: s.startWithWindows,
                         onChanged: n.setStartWithWindows,
                       ),

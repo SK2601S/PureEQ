@@ -17,8 +17,10 @@ import 'theme/app_theme.dart';
 Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // "Start with Windows" launches us with --minimized: stay in the tray.
-  final startHidden = args.contains(StartupService.minimizedFlag);
+  // Started at sign-in ("Start with Windows" passes --minimized; macOS
+  // reports a login-item launch): stay in the tray / menu bar.
+  final startHidden = args.contains(StartupService.minimizedFlag) ||
+      await StartupService.launchedAtLogin();
 
   // --- Persistence --------------------------------------------------------
   // Loaded once up front so providers can read it synchronously.

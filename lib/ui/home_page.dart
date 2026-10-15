@@ -84,6 +84,8 @@ class _HomePageState extends ConsumerState<HomePage> with WindowListener {
     if (ref.read(settingsProvider).closeToTray) {
       _setVisible(false);
       await windowManager.hide();
+      // Keeps running in the tray; save now in case the computer shuts down.
+      await ref.read(eqProvider.notifier).flush();
     } else {
       await _quit();
     }
