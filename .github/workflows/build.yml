@@ -86,6 +86,9 @@ jobs:
           if [ "$PUB" != "$VERSION" ]; then
             echo "::error::pubspec.yaml version ($PUB) does not match tag $TAG"; exit 1
           fi
+          # actions/checkout turns the tag into a lightweight one; fetch the
+          # annotated tag itself, or the notes would be the commit message.
+          git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
           git tag -l --format='%(contents)' "$TAG" > notes.md
           BASE="https://github.com/$REPO/releases/download/$TAG"
           EXE="SK-EQ-Setup-$VERSION.exe"
